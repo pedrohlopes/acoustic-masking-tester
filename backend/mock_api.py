@@ -1,0 +1,107 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import numpy as np
+import uvicorn
+import io
+import soundfile as sf
+from fastapi.responses import StreamingResponse
+import base64
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+# Allow CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+def generate_pulse(
+        sample_rate: int = 44100,
+        total_duration: float = 1.0, 
+        timepulse_location: float = 0.5, 
+        timepulse_duration: float = 0.005, 
+        timepulse_amplitude: float = 0.3,
+        raise_type: str = 'exponential'
+        ) -> np.ndarray:
+    """
+        Generates an audio signal with a pulse and returns it as a WAV file.
+
+        Args:
+            sample_rate (int, optional): The sample rate of the audio signal. Defaults to 44100.
+            total_duration (float, optional): The total duration of the audio signal in seconds. Defaults to 1.0.
+            timepulse_location (float, optional): The location of the time pulse within the audio signal in seconds. Defaults to 0.5.
+            timepulse_duration (float, optional): The duration of the time pulse in seconds. Defaults to 0.005.
+            timepulse_amplitude (float, optional): The amplitude of the time pulse. Defaults to 0.3.
+            raise_type (str, optional): The type of rise for the time pulse. Defaults to 'exponential'.
+
+        Returns:
+            StreamingResponse: A streaming response containing the generated WAV audio file with the generated pulse.
+    """
+    base_audio = np.zeros(int(sample_rate * total_duration))
+    time_pulse_start = int(sample_rate * timepulse_location) - int(sample_rate * timepulse_duration / 2)
+    time_pulse_end = int(sample_rate * timepulse_location) + int(sample_rate * timepulse_duration / 2) - 1 # symmetry, might be bad... TODO: refactor
+    time_pulse = np.linspace(0, 1, int(sample_rate * timepulse_duration / 2))
+    if raise_type == 'exponential':
+        time_pulse = np.exp(np.linspace(0, 1, int(sample_rate * timepulse_duration / 2))) - 1
+        time_pulse = time_pulse / np.max(time_pulse)
+    time_pulse = np.concatenate((time_pulse, time_pulse[1:][::-1]))
+    time_pulse = timepulse_amplitude * time_pulse
+    base_audio[time_pulse_start:time_pulse_end] = time_pulse
+    return base_audio
+
+@app.get("/mock_gen_signals", response_class=JSONResponse)
+def mock_gen_signals(
+    grid_size: int = 10,
+    grid_step: float = 0.001,
+    sample_rate: int = 44100,
+    total_duration: float = 1.0,
+    timepulse_location: float = 0.5,
+    timepulse_duration: float = 0.005,
+    timepulse_amplitude: float = 0.3,
+    raise_type: str = 'exponential'
+    ) -> dict:
+    masker = generate_pulse(sample_rate, total_duration, timepulse_location, timepulse_duration, timepulse_amplitude, raise_type)
+    masker_file = io.BytesIO()
+    sf.write(masker_file, masker, sample_rate, format='WAV')
+    grid_locations = timepulse_location + np.arange(-grid_size // 2, grid_size // 2) * grid_step
+    maskee_signals = []
+    for loc in grid_locations:
+        maskee_signal = generate_pulse(sample_rate, total_duration, loc, timepulse_duration, timepulse_amplitude, raise_type)
+        maskee_file = io.BytesIO()
+        sf.write(maskee_file, maskee_signal, sample_rate, format='WAV')
+        maskee_signals.append(maskee_file)
+    
+    return JSONResponse(content=
+    {
+        "masker": base64.b64encode(masker_file.getvalue()).decode('utf-8'),
+        "maskee_signals": [base64.b64encode(maskee.getvalue()).decode('utf-8') for maskee in maskee_signals]
+    }
+    )
+    
+@app.post("/combine_signals", response_class=JSONResponse)
+def combine_signals(
+    signals: dict
+    ) -> dict:
+    masker = base64.b64decode(signals['masker'])
+    masker = io.BytesIO(masker)
+    masker, _ = sf.read(masker)
+    maskee_signal = base64.b64decode(signals['maskee_signal'])
+    maskee_signal = io.BytesIO(maskee_signal)
+    maskee_signal, _ = sf.read(maskee_signal)
+    volume = signals.get('volume', 1.0)
+    combined_signal = masker + volume * maskee_signal
+    combined_file = io.BytesIO()
+    sf.write(combined_file, combined_signal, 44100, format='WAV')
+    return JSONResponse(content=
+        {
+            "combined_signal": base64.b64encode(combined_file.getvalue()).decode('utf-8')
+        }
+    )
+    
+    
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
