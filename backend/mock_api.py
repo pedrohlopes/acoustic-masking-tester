@@ -1,3 +1,4 @@
+from locale import normalize
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
@@ -53,6 +54,36 @@ def generate_pulse(
     base_audio[time_pulse_start:time_pulse_end] = time_pulse
     return base_audio
 
+@app.post("/generate_calibration_signal", response_class=JSONResponse)
+def generate_calibration_signal(configs:dict) -> dict:
+    """
+        Generates a calibration signal and returns it as a WAV file.
+        Args:
+            configs (dict): A dictionary containing the configuration parameters for the calibration signal.
+                volume (float, optional): The volume of the calibration signal in dB. Defaults to 0.
+                sample_rate (int, optional): The sample rate of the calibration signal. Defaults to 44100.
+                total_duration (float, optional): The total duration of the calibration signal in seconds. Defaults to 1.0.
+        Returns:
+            JSONResponse: A JSON response containing the generated WAV audio file with the calibration signal.
+    """
+    gain = configs.get('volume', 0)
+    sample_rate = configs.get('sample_rate', 44100)
+    total_duration = configs.get('total_duration', 1.0)
+    t = np.linspace(0, total_duration, int(sample_rate * total_duration), endpoint=False)
+    frequency = 2000  # 2 kHz
+    amplitude = 10 ** (gain / 20)  # Convert gain from dB to linear scale
+    calibration_signal = amplitude * np.sin(2 * np.pi * frequency * t)
+    signal_file = io.BytesIO()
+    sf.write(signal_file, calibration_signal, sample_rate, format='WAV', subtype='PCM_16')
+    
+    return JSONResponse(content=
+        {
+            "calibration_signal": base64.b64encode(signal_file.getvalue()).decode('utf-8')
+        }
+    )
+
+
+
 @app.get("/mock_gen_signals", response_class=JSONResponse)
 def mock_gen_signals(
     grid_size: int = 10,
@@ -61,7 +92,7 @@ def mock_gen_signals(
     total_duration: float = 1.0,
     timepulse_location: float = 0.5,
     timepulse_duration: float = 0.005,
-    timepulse_amplitude: float = 0.3,
+    timepulse_amplitude: float = 0.8,
     raise_type: str = 'exponential'
     ) -> dict:
     masker = generate_pulse(sample_rate, total_duration, timepulse_location, timepulse_duration, timepulse_amplitude, raise_type)

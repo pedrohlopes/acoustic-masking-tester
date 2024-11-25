@@ -4,6 +4,7 @@ import React from "react";
 import {CheckboxGroup, Checkbox, Button} from "@nextui-org/react";
 import {button as buttonStyles} from "@nextui-org/theme";
 import {TestInterface} from "@/components/testInterface";
+import { CalibrationStage } from "@/components/calibration";
 
 export default function TestsPage() {
   const [invalidMasker,setInvalidMasker] = React.useState(false);
@@ -12,14 +13,23 @@ export default function TestsPage() {
   const [selectedMasker, setSelectedMasker] = React.useState(["pulse"]);
   const [selectedMaskee, setSelectedMaskee] = React.useState(["pulse"]);
   const [selectedMaskingType, setSelectedMaskingType] = React.useState(["time"]);
+  const [calibrated,setCalibrated] = React.useState(false);
+  const [calibrationGain,setCalibrationGain] = React.useState(0);
   const [stage,setStage] = React.useState(0);
   return (
     <div>
       <h1 className={title()}>Masking tests</h1>
       <p className="mt-2 mb-8">
-        Setup the test by choosing the masker, maskee and masking type.
+        Start by calibrating your audio output device. Then, select the masker, maskee, and masking type to begin the test.
       </p>
-      {(stage == 0   ? (<>
+
+      { !calibrated ? (
+        <CalibrationStage onCalibrated={(gain) => {setCalibrated(true); setCalibrationGain(gain)}} />
+  
+      )
+      :
+      
+      (stage == 0   ? (<>
       <CheckboxGroup
         isRequired
         isInvalid={invalidMasker}
@@ -79,20 +89,6 @@ export default function TestsPage() {
       ) : (
         <TestInterface maskerType={selectedMasker[0]} maskeeType={selectedMaskee[0]} maskingType={selectedMaskingType[0]}/>
       ))}
-      <div className="mt-8">
-        <Button
-          className={buttonStyles({
-            color: "primary",
-            radius: "full",
-            variant: "shadow",
-          })}
-          onClick={() => {
-            setStage(stage + 1);
-          }}
-        >
-          Continue
-        </Button>
-      </div>
     </div>
   );
 }

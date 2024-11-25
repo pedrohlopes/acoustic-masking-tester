@@ -10,7 +10,7 @@ interface TestInterfaceProps {
 }
 import { useEffect } from "react";
 import { Slider, Spinner } from "@nextui-org/react";
-
+import { button as buttonStyles } from "@nextui-org/theme";
 
 
 const fetchTestData = async (url: string) => {
@@ -61,6 +61,20 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
   const [currentMaskeeVolume, setCurrentMaskeeVolume] = useState<number>(1.0);
   const [currentWavHeader, setCurrentWavHeader] = useState<string>("");
   const [loadingCombinedAudio,setLoadingCombinedAudio] = useState<boolean>(true);
+  const [savedVolumes, setSavedVolumes] = useState<number[]>([]);
+
+  const handleContinuebutton = () => {
+    if (currentStage - 1 === data.maskees.length) {
+      return;
+    }
+    setCurrentStage(currentStage + 1);
+    console.log(currentMaskeeVolume)
+    let newSavedVolumes = [...savedVolumes, currentMaskeeVolume];
+    setSavedVolumes(newSavedVolumes);
+    console.log(savedVolumes)
+    setCurrentMaskeeVolume(1.0);
+    
+  }
 
   const handleUpdateVolume = async (value: number | number[]) => {
     let volume = 0
@@ -121,7 +135,7 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
               
               </>
             )}
-          <p>Maskee:</p>
+          <p className="mt-4">Maskee ({maskeeType}):</p>
           {
             currentMaskee &&
             <div key={'audio_div'}>
@@ -139,7 +153,7 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
               Play Maskee Only
             </Button>
           </div>
-          <p>Combined audio:</p>
+          <p className="mt-4">Combined audio:</p>
           {
             loadingCombinedAudio? <Spinner/>:
             <div key={'audio_div_combined'}>
@@ -157,7 +171,7 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
               Play Both
             </Button>
           </div>
-          <p>Maskee volume: (set to first inaudible volume)</p>
+          <p className="mt-4">Maskee volume: (set to first inaudible volume)</p>
             <Slider
               value={currentMaskeeVolume}
               onChange={(value: number | number[]) => {
@@ -180,6 +194,22 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
        : (
         <p>Loading...</p>
       )}
+        <div className="mt-8">
+        <Button
+          className={buttonStyles({
+            color: "primary",
+            radius: "full",
+            variant: "shadow",
+          })}
+          onClick={() => {
+            handleContinuebutton();
+          }}
+        >
+          Next maskee
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="m11 19l6-7l-6-7"/><path d="m7 19l6-7l-6-7"/></g></svg>
+        </Button>
+      </div>
     </div>
+    
   );
 };
