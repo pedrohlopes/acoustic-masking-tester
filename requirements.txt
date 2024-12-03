@@ -4,4 +4,4 @@ numpy
 soundfile
 base64
 scipy
-
+matplotlib

@@ -3,15 +3,16 @@
 import { useState } from "react";
 import { Button } from "@nextui-org/button";
 
-interface TestInterfaceProps {
+interface MaskingTestProps {
   maskerType: string;
   maskeeType: string;
   maskingType: string;
+  minGain: number;
+  onTestEnd: () => void;
 }
 import { useEffect } from "react";
 import { Slider, Spinner } from "@nextui-org/react";
 import { button as buttonStyles } from "@nextui-org/theme";
-
 
 const fetchTestData = async (url: string) => {
   const response = await fetch(url);
@@ -28,7 +29,7 @@ const fetchTestData = async (url: string) => {
   return { masker: maskerAudio, maskees: maskeesAudio, maskerAudioBase64: maskerAudioBase64, maskeesAudioBase64: maskeesAudioBase64 };
 };
 
-const fetchCombinedSignals = async (url: string, maskerAudioBase64: string, maskeeAudioBase64: string, volume: number=1.0) => {
+const fetchCombinedSignals = async (url: string, maskerAudioBase64: string, maskeeAudioBase64: string, gain: number=1.0) => {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -38,7 +39,7 @@ const fetchCombinedSignals = async (url: string, maskerAudioBase64: string, mask
     body: JSON.stringify({
       masker: maskerAudioBase64,
       maskee_signal: maskeeAudioBase64,
-      volume: volume
+      gain: gain
     })
   });
   if (!response.ok) {
@@ -54,39 +55,43 @@ const fetchCombinedSignals = async (url: string, maskerAudioBase64: string, mask
 
 
 
-export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInterfaceProps) => {
+export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTestEnd }: MaskingTestProps) => {
   const [currentStage, setCurrentStage] = useState(0);
   const [currentMaskee, setCurrentMaskee] = useState<any>(null);
   const [combinedAudio, setCombinedAudio] = useState<any>(null);
-  const [currentMaskeeVolume, setCurrentMaskeeVolume] = useState<number>(1.0);
+  const [currentMaskeeGain, setCurrentMaskeeGain] = useState<number>(1.0);
   const [currentWavHeader, setCurrentWavHeader] = useState<string>("");
   const [loadingCombinedAudio,setLoadingCombinedAudio] = useState<boolean>(true);
-  const [savedVolumes, setSavedVolumes] = useState<number[]>([]);
+  const [savedGains, setSavedGains] = useState<number[]>([]);
+
+  
 
   const handleContinuebutton = () => {
     if (currentStage - 1 === data.maskees.length) {
+      onTestEnd();
       return;
     }
     setCurrentStage(currentStage + 1);
-    console.log(currentMaskeeVolume)
-    let newSavedVolumes = [...savedVolumes, currentMaskeeVolume];
-    setSavedVolumes(newSavedVolumes);
-    console.log(savedVolumes)
-    setCurrentMaskeeVolume(1.0);
+    console.log(currentMaskeeGain)
+    let newSavedGains = [...savedGains, currentMaskeeGain];
+    setSavedGains(newSavedGains);
+    console.log(savedGains)
+    setCurrentMaskeeGain(1.0);
     
   }
 
-  const handleUpdateVolume = async (value: number | number[]) => {
-    let volume = 0
+  const handleUpdategain = async (value: number | number[]) => {
+    let gain = 0
     if (Array.isArray(value)) {
-      volume = value[0]
+      gain = value[0]
     } else {
-      volume = value
+      gain = value
     }
-    setCurrentMaskeeVolume(volume);
+    setCurrentMaskeeGain(gain);
     setLoadingCombinedAudio(true);
-    const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], volume);
+    const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain);
     const combinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
+    combinedAudio.play();
     setCombinedAudio(combinedAudio);
     setLoadingCombinedAudio(false);
   }
@@ -118,7 +123,7 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
   const { data, error } = useFetchJson("http://localhost:8000/mock_gen_signals");
   
   return (
-    <div>
+    <div className="mt-4">
       {data ? (
         <div>
           <p>Masker ({maskerType}):</p>
@@ -171,23 +176,23 @@ export const TestInterface = ({ maskerType, maskeeType, maskingType }: TestInter
               Play Both
             </Button>
           </div>
-          <p className="mt-4">Maskee volume: (set to first inaudible volume)</p>
+          <p className="mt-4">Maskee gain: (adjust until barely hearable)</p>
             <Slider
-              value={currentMaskeeVolume}
+              value={currentMaskeeGain}
               onChange={(value: number | number[]) => {
                 if (Array.isArray(value)) {
-                  setCurrentMaskeeVolume(value[0]);
+                  setCurrentMaskeeGain(value[0]);
                 } else {
-                  setCurrentMaskeeVolume(value);
+                  setCurrentMaskeeGain(value);
                 }
               }}
-              aria-label="Maskee volume"
+              aria-label="Maskee gain"
               step={0.01} 
-              maxValue={1}
-              onChangeEnd={handleUpdateVolume}
-              minValue={0} 
+              maxValue={0}
+              onChangeEnd={handleUpdategain}
+              minValue={minGain} 
             />
-            <p className="text-default-500 font-medium text-small">Current volume: {currentMaskeeVolume}</p>
+            <p className="text-default-500 font-medium text-small">Current gain: {currentMaskeeGain}</p>
 
           </div>
       )

@@ -7,6 +7,8 @@ import { useEffect } from "react";
 import { Slider, Spinner } from "@nextui-org/react";
 import { title, subtitle } from "@/components/primitives";
 import { button as buttonStyles } from "@nextui-org/theme";
+import { fixedMaskingConfigs } from "@/config/masking";
+
 
 
 const fetchCalibrationTone = async (url: string, volume: number) => {
@@ -29,11 +31,11 @@ const fetchCalibrationTone = async (url: string, volume: number) => {
 }
 
 
-export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:Number) => void }) => {
-  const [volume, setVolume] = useState(0);
+export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:number) => void }) => {
+  const [volume, setVolume] = useState(fixedMaskingConfigs['initialCalibrationVolume']);
   const [calibrating, setCalibrating] = useState(false);
   const [toneAudioBase64, setToneAudioBase64] = useState("");
-  const [toneAudio, setToneAudio] = useState(new Audio());
+  const [toneAudio, setToneAudio] = useState<any>(null);
   const url = "http://localhost:8000/generate_calibration_signal";
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:Number)
 
         : (
         <Button
-          className={buttonStyles()}
+          className={buttonStyles( {color: "primary"})}
           onClick={() => {
             setCalibrating(true);
           }}

@@ -7,7 +7,10 @@ import io
 import soundfile as sf
 from fastapi.responses import StreamingResponse
 import base64
+import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+import matplotlib
 
 app = FastAPI()
 
@@ -115,16 +118,17 @@ def mock_gen_signals(
     
 @app.post("/combine_signals", response_class=JSONResponse)
 def combine_signals(
-    signals: dict
+    signals_data: dict,
     ) -> dict:
-    masker = base64.b64decode(signals['masker'])
+    masker = base64.b64decode(signals_data['masker'])
     masker = io.BytesIO(masker)
     masker, _ = sf.read(masker)
-    maskee_signal = base64.b64decode(signals['maskee_signal'])
+    maskee_signal = base64.b64decode(signals_data['maskee_signal'])
     maskee_signal = io.BytesIO(maskee_signal)
     maskee_signal, _ = sf.read(maskee_signal)
-    volume = signals.get('volume', 1.0)
-    combined_signal = masker + volume * maskee_signal
+    gain_db = signals_data.get('gain', 0)
+    gain_linear = 10 ** (gain_db / 20)  # Convert gain from dB to linear scale
+    combined_signal = masker + gain_linear * maskee_signal
     combined_file = io.BytesIO()
     sf.write(combined_file, combined_signal, 44100, format='WAV')
     return JSONResponse(content=
@@ -133,6 +137,40 @@ def combine_signals(
         }
     )
     
+
+@app.post("/plot_masking_curve", response_class=FileResponse)
+def plot_masking_curve(data: dict) -> FileResponse:
+    """
+        Plots the masking curve and returns the image file.
+        Args:
+            data (dict): A dictionary containing the gain array and the grid array.
+                gain (list): The gain values.
+                grid (list): The grid values for the x-axis.
+        Returns:
+            FileResponse: A file response containing the plotted image of the masking curve.
+    """
+    gain = data.get('gains', [])
+    grid = data.get('grid', [])
+    
+    if not gain or not grid or len(gain) != len(grid):
+        print(data)
+        return JSONResponse(content={"error": "Invalid data"}, status_code=400)
+    
+    matplotlib.use('Agg')  # Use a non-interactive backend
+
+    plt.figure()
+    plt.plot(grid, gain, marker='o')
+    plt.plot(grid, gain, linestyle='-', color='b')
+    plt.xlabel('Grid')
+    plt.ylabel('Gain (dB)')
+    plt.title('Masking Curve')
+    plt.grid(True)
+
+    image_file = '/tmp/masking_curve.png'
+    plt.savefig(image_file)
+    plt.close()
+    
+    return FileResponse(image_file)
     
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
