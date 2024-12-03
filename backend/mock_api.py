@@ -146,11 +146,15 @@ def plot_masking_curve(data: dict) -> FileResponse:
             data (dict): A dictionary containing the gain array and the grid array.
                 gain (list): The gain values.
                 grid (list): The grid values for the x-axis.
+                maskerInfo (dict): A dictionary containing the masker information.
         Returns:
             FileResponse: A file response containing the plotted image of the masking curve.
     """
     gain = data.get('gains', [])
     grid = data.get('grid', [])
+    masker_info = data.get('maskerInfo', {})
+    masker_placement = masker_info.get('placement', 0)
+    masker_gain = masker_info.get('gain', 0)
     
     if not gain or not grid or len(gain) != len(grid):
         print(data)
@@ -161,6 +165,9 @@ def plot_masking_curve(data: dict) -> FileResponse:
     plt.figure()
     plt.plot(grid, gain, marker='o')
     plt.plot(grid, gain, linestyle='-', color='b')
+    plt.vlines(masker_placement, min(gain), masker_gain, colors='r', linestyles='dashed', label='Masker')
+    plt.plot(masker_placement, masker_gain, marker='o', color='r')
+    plt.legend()
     plt.xlabel('Grid')
     plt.ylabel('Gain (dB)')
     plt.title('Masking Curve')

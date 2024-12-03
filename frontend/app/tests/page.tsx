@@ -35,7 +35,11 @@ export default function TestsPage() {
       :
 
       testComplete ? (
-        <TestResults selectedGains={[-30,-20,-10,0,-10,-20,-30]} grid={[0,1,2,3,4,5,6]} />
+        <TestResults selectedGains={[-50,-25,-10,-5,-10,-30,-50]} grid={[0,1,2,3,3.5,4.5,5]} 
+        maskerInfo={{
+          placement: 3,
+          gain: 0
+        }} />
       ) : 
       (stage == 0   ? (<>
       

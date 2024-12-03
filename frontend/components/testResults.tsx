@@ -2,13 +2,21 @@
 
 import { useState, useEffect } from "react";
 
+interface MaskerInfo {
+  placement: number;
+  gain: number;
+}
+
 interface TestResultProps {
   selectedGains: number[];
   grid: number[];
+  maskerInfo: MaskerInfo;
 }
 
 
-const fetchTestResultImage = async (url: string, gains: number[], grid: number[]) => {
+
+
+const fetchTestResultImage = async (url: string, gains: number[], grid: number[], maskerInfo: MaskerInfo) => {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -17,6 +25,7 @@ const fetchTestResultImage = async (url: string, gains: number[], grid: number[]
 
     body: JSON.stringify({
       gains: gains,
+      maskerInfo: maskerInfo,
       grid: grid
     })
   });
@@ -34,7 +43,7 @@ const fetchTestResultImage = async (url: string, gains: number[], grid: number[]
 
 
 
-export const TestResults = ({ selectedGains, grid }: TestResultProps) => {
+export const TestResults = ({ selectedGains, grid, maskerInfo }: TestResultProps) => {
   
 
   const [image, setImage] = useState<string | undefined>(undefined);
@@ -43,7 +52,7 @@ export const TestResults = ({ selectedGains, grid }: TestResultProps) => {
   useEffect(() => {
     const fetchImage = async () => {
       try {
-        const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid);
+        const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid, maskerInfo);
         setImage(imageUrl);
       } catch (error) {
         console.error("Failed to fetch image:", error);
