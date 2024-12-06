@@ -8,7 +8,7 @@ interface MaskingTestProps {
   maskeeType: string;
   maskingType: string;
   minGain: number;
-  onTestEnd: () => void;
+  onTestEnd: (savedGains: number[]) => void;
 }
 import { useEffect } from "react";
 import { Slider, Spinner } from "@nextui-org/react";
@@ -59,24 +59,26 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
   const [currentStage, setCurrentStage] = useState(0);
   const [currentMaskee, setCurrentMaskee] = useState<any>(null);
   const [combinedAudio, setCombinedAudio] = useState<any>(null);
-  const [currentMaskeeGain, setCurrentMaskeeGain] = useState<number>(1.0);
-  const [currentWavHeader, setCurrentWavHeader] = useState<string>("");
+  const [currentMaskeeGain, setCurrentMaskeeGain] = useState<number>(0);
+  const [displayMaskeeGain, setDisplayMaskeeGain] = useState<number>(-minGain);
   const [loadingCombinedAudio,setLoadingCombinedAudio] = useState<boolean>(true);
   const [savedGains, setSavedGains] = useState<number[]>([]);
 
   
 
   const handleContinuebutton = () => {
-    if (currentStage - 1 === data.maskees.length) {
-      onTestEnd();
+    console.log(currentStage, data.maskees.length)
+    const newStage = currentStage + 1;
+    setCurrentStage(newStage);
+    let newSavedGains = [...savedGains, displayMaskeeGain];
+    setSavedGains(newSavedGains);
+    console.log(newSavedGains)
+    setCurrentMaskeeGain(0);
+    if (newStage >= data.maskees.length) {
+      onTestEnd(newSavedGains);
       return;
     }
-    setCurrentStage(currentStage + 1);
-    console.log(currentMaskeeGain)
-    let newSavedGains = [...savedGains, currentMaskeeGain];
-    setSavedGains(newSavedGains);
-    console.log(savedGains)
-    setCurrentMaskeeGain(1.0);
+  
     
   }
 
@@ -87,9 +89,8 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
     } else {
       gain = value
     }
-    setCurrentMaskeeGain(gain);
     setLoadingCombinedAudio(true);
-    const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain);
+    const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain + minGain);
     const combinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
     combinedAudio.play();
     setCombinedAudio(combinedAudio);
@@ -178,21 +179,24 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
           </div>
           <p className="mt-4">Maskee gain: (adjust until barely hearable)</p>
             <Slider
-              value={currentMaskeeGain}
+              value={displayMaskeeGain}
               onChange={(value: number | number[]) => {
                 if (Array.isArray(value)) {
-                  setCurrentMaskeeGain(value[0]);
+                  setDisplayMaskeeGain(value[0]);
+                  setCurrentMaskeeGain(minGain + value[0]);
                 } else {
-                  setCurrentMaskeeGain(value);
+                  setDisplayMaskeeGain(value);
+                  setCurrentMaskeeGain(minGain + value);
+
                 }
               }}
               aria-label="Maskee gain"
               step={0.01} 
-              maxValue={0}
+              maxValue={-minGain}
               onChangeEnd={handleUpdategain}
-              minValue={minGain} 
+              minValue={0} 
             />
-            <p className="text-default-500 font-medium text-small">Current gain: {currentMaskeeGain}</p>
+            <p className="text-default-500 font-medium text-small">Current gain: {displayMaskeeGain} dB SPL</p>
 
           </div>
       )

@@ -14,11 +14,17 @@ export default function TestsPage() {
   const [invalidMaskingType, setInvalidMaskingType] = React.useState(false);
   const [selectedTest, setSelectedTest] = React.useState(["pulse"]);
   const [selectedMaskingType, setSelectedMaskingType] = React.useState(["time"]);
+  const [userResponses, setUserResponses] = React.useState<number[]>([]);
   const [calibrated,setCalibrated] = React.useState(false);
   const [calibrationGain,setCalibrationGain] = React.useState(0);
   const [stage,setStage] = React.useState(0);
   const [testComplete,setTestComplete] = React.useState(false);
   const maskingTypes = fixedMaskingConfigs['maskingTypes'];
+
+  const handleTestEnd = (savedGains: number[]) => {
+    setTestComplete(true);
+    setUserResponses(savedGains);
+  }
 
   
   return (
@@ -35,11 +41,13 @@ export default function TestsPage() {
       :
 
       testComplete ? (
-        <TestResults selectedGains={[-50,-25,-10,-5,-10,-30,-50]} grid={[0,1,2,3,3.5,4.5,5]} 
+        <TestResults selectedGains={userResponses} grid={[0.49, 0.492, 0.494, 0.496, 0.498, 0.5,   0.502, 0.504, 0.506, 0.508]} 
         maskerInfo={{
-          placement: 3,
-          gain: 0
-        }} />
+          placement: 0.5,
+          gain: -3
+        }}
+        minGain={calibrationGain}
+        />
       ) : 
       (stage == 0   ? (<>
       
@@ -105,7 +113,7 @@ export default function TestsPage() {
       </Button>
       </>
       ) : (
-        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]]['masker']} maskeeType={maskingTypes[selectedMaskingType[0]]['maskee']} maskingType={selectedMaskingType[0]} minGain={calibrationGain} onTestEnd={() => setTestComplete(true)} />
+        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]]['masker']} maskeeType={maskingTypes[selectedMaskingType[0]]['maskee']} maskingType={selectedMaskingType[0]} minGain={calibrationGain} onTestEnd={handleTestEnd} />
       ))}
     </div>
   );

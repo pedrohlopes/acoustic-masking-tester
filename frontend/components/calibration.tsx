@@ -69,7 +69,7 @@ export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:number)
             minValue={-80}
             maxValue={0}
             showTooltip
-            label="Gain (dB)"
+            label="Gain (dB) from max. wav amplitude"
             aria-label="Desired Gain"
             
             step={1}

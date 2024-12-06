@@ -90,12 +90,12 @@ def generate_calibration_signal(configs:dict) -> dict:
 @app.get("/mock_gen_signals", response_class=JSONResponse)
 def mock_gen_signals(
     grid_size: int = 10,
-    grid_step: float = 0.001,
+    grid_step: float = 0.002,
     sample_rate: int = 44100,
     total_duration: float = 1.0,
     timepulse_location: float = 0.5,
     timepulse_duration: float = 0.005,
-    timepulse_amplitude: float = 0.8,
+    timepulse_amplitude: float = 10 ** (-3 / 20), # linear gain from db
     raise_type: str = 'exponential'
     ) -> dict:
     masker = generate_pulse(sample_rate, total_duration, timepulse_location, timepulse_duration, timepulse_amplitude, raise_type)
@@ -155,7 +155,7 @@ def plot_masking_curve(data: dict) -> FileResponse:
     masker_info = data.get('maskerInfo', {})
     masker_placement = masker_info.get('placement', 0)
     masker_gain = masker_info.get('gain', 0)
-    
+    print(len(gain), len(grid))
     if not gain or not grid or len(gain) != len(grid):
         print(data)
         return JSONResponse(content={"error": "Invalid data"}, status_code=400)
