@@ -87,17 +87,21 @@ def generate_calibration_signal(configs:dict) -> dict:
 
 
 
-@app.get("/mock_gen_signals", response_class=JSONResponse)
+@app.post("/mock_gen_signals", response_class=JSONResponse)
 def mock_gen_signals(
-    grid_size: int = 10,
-    grid_step: float = 0.002,
-    sample_rate: int = 44100,
-    total_duration: float = 1.0,
-    timepulse_location: float = 0.5,
-    timepulse_duration: float = 0.005,
-    timepulse_amplitude: float = 10 ** (-3 / 20), # linear gain from db
-    raise_type: str = 'exponential'
+    configs: dict
     ) -> dict:
+    
+    grid_size = configs.get('grid_size', 10)
+    grid_step = configs.get('grid_step', 0.01)
+    sample_rate = configs.get('sample_rate', 44100)
+    total_duration = configs.get('total_duration', 1.0)
+    timepulse_location = configs.get('timepulse_location', 0.5)
+    timepulse_duration = configs.get('timepulse_duration', 0.005)
+    timepulse_amplitude = 10**(configs.get('timepulse_gain', -3)/20)
+    raise_type = configs.get('raise_type', 'exponential')
+    print('mock_gen_signals', configs)
+    
     masker = generate_pulse(sample_rate, total_duration, timepulse_location, timepulse_duration, timepulse_amplitude, raise_type)
     masker_file = io.BytesIO()
     sf.write(masker_file, masker, sample_rate, format='WAV')
@@ -150,22 +154,22 @@ def plot_masking_curve(data: dict) -> FileResponse:
         Returns:
             FileResponse: A file response containing the plotted image of the masking curve.
     """
-    gain = data.get('gains', [])
+    maskee_gains = data.get('gains', [])
     grid = data.get('grid', [])
     masker_info = data.get('maskerInfo', {})
-    masker_placement = masker_info.get('placement', 0)
-    masker_gain = masker_info.get('gain', 0)
-    print(len(gain), len(grid))
-    if not gain or not grid or len(gain) != len(grid):
+    masker_placement = masker_info.get('placement', 0.5)
+    masker_gain = masker_info.get('gain', 60)
+    print(len(maskee_gains), len(grid))
+    if not maskee_gains or not grid or len(maskee_gains) != len(grid):
         print(data)
         return JSONResponse(content={"error": "Invalid data"}, status_code=400)
-    
+    print('plot_masking_curve', data)
     matplotlib.use('Agg')  # Use a non-interactive backend
 
     plt.figure()
-    plt.plot(grid, gain, marker='o')
-    plt.plot(grid, gain, linestyle='-', color='b')
-    plt.vlines(masker_placement, min(gain), masker_gain, colors='r', linestyles='dashed', label='Masker')
+    plt.plot(grid, maskee_gains, marker='o')
+    plt.plot(grid, maskee_gains, linestyle='-', color='b', label='Maskees')
+    plt.vlines(masker_placement, min(maskee_gains), masker_gain, colors='r', linestyles='dashed', label='Masker')
     plt.plot(masker_placement, masker_gain, marker='o', color='r')
     plt.legend()
     plt.xlabel('Grid')
@@ -180,4 +184,4 @@ def plot_masking_curve(data: dict) -> FileResponse:
     return FileResponse(image_file)
     
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("mock_api:app", host="0.0.0.0", port=8000, reload=True)

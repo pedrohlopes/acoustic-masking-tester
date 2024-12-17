@@ -8,7 +8,13 @@ import { Slider, Spinner } from "@nextui-org/react";
 import { title, subtitle } from "@/components/primitives";
 import { button as buttonStyles } from "@nextui-org/theme";
 import { fixedMaskingConfigs } from "@/config/masking";
+import { SettingsModal, TestSettings, defaultTestSettings } from "./settingsModal";
 
+interface CalibrationStageProps {
+  onCalibrated: (gain: number) => void;
+  testSettings: TestSettings;
+  setTestSettings: (settings: TestSettings) => void;
+}
 
 
 const fetchCalibrationTone = async (url: string, volume: number) => {
@@ -31,11 +37,12 @@ const fetchCalibrationTone = async (url: string, volume: number) => {
 }
 
 
-export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:number) => void }) => {
+export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: CalibrationStageProps) => {
   const [volume, setVolume] = useState(fixedMaskingConfigs['initialCalibrationVolume']);
   const [calibrating, setCalibrating] = useState(false);
   const [toneAudioBase64, setToneAudioBase64] = useState("");
   const [toneAudio, setToneAudio] = useState<any>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const url = "http://localhost:8000/generate_calibration_signal";
 
   useEffect(() => {
@@ -95,6 +102,23 @@ export const CalibrationStage = ({ onCalibrated }: { onCalibrated: (gain:number)
           Calibrate
         </Button>
         ))}
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
+        {!calibrating && <Button
+          className={buttonStyles({
+            color: "secondary",
+            radius: "full",
+            variant: "shadow",
+          })}
+          onClick={() => {
+            // Handle settings button click
+            setModalOpen(true);
+          }}
+        >
+          Test Settings
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none" stroke="black" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.09.09a2 2 0 1 1-2.83 2.83l-.09-.09a1.65 1.65 0 0 0-1.82-.33a1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.13a1.65 1.65 0 0 0-1-1.51a1.65 1.65 0 0 0-1.82.33l-.09.09a2 2 0 1 1-2.83-2.83l.09-.09a1.65 1.65 0 0 0 .33-1.82a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.13a1.65 1.65 0 0 0 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.09-.09a2 2 0 1 1 2.83-2.83l.09.09a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.13a1.65 1.65 0 0 0 1 1.51a1.65 1.65 0 0 0 1.82-.33l.09-.09a2 2 0 1 1 2.83 2.83l-.09.09a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.13a1.65 1.65 0 0 0-1.51 1z"/></g></svg>
+        </Button>}
+        <SettingsModal isOpen={modalOpen} onClose={() => setModalOpen(false)} testSettings={testSettings} setTestSettings={(settings) => {setTestSettings(settings)}}/>
+      </div>
       </section>
   );
 };

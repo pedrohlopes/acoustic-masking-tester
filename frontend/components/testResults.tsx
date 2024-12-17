@@ -50,21 +50,21 @@ export const TestResults = ({ selectedGains, grid, maskerInfo, minGain }: TestRe
 
   const [image, setImage] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
+  const fetchImage = async () => {
+    try {
+      const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid, maskerInfo, minGain);
+      setImage(imageUrl);
+    } catch (error) {
+      console.error("Failed to fetch image:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchImage = async () => {
-      try {
-        const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid, maskerInfo, minGain);
-        setImage(imageUrl);
-      } catch (error) {
-        console.error("Failed to fetch image:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchImage();
-  }, [selectedGains, grid]);
+  }, []);
   
   return (
     <div className="mt-4">
@@ -73,7 +73,7 @@ export const TestResults = ({ selectedGains, grid, maskerInfo, minGain }: TestRe
       ) : (
         <div>
           <p>Resulting mask:</p>
-          <img src={image} alt="Masking test result" />
+          <img src={image} alt="Masking test results" />
         </div>
             
       )}

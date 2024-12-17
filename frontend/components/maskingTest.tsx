@@ -3,19 +3,38 @@
 import { useState } from "react";
 import { Button } from "@nextui-org/button";
 
+
+import { useEffect } from "react";
+import { Slider, Spinner } from "@nextui-org/react";
+import { button as buttonStyles } from "@nextui-org/theme";
+import { TestSettings } from "./settingsModal";
+
 interface MaskingTestProps {
   maskerType: string;
   maskeeType: string;
   maskingType: string;
   minGain: number;
+  advancedSettings: TestSettings;
   onTestEnd: (savedGains: number[]) => void;
 }
-import { useEffect } from "react";
-import { Slider, Spinner } from "@nextui-org/react";
-import { button as buttonStyles } from "@nextui-org/theme";
 
-const fetchTestData = async (url: string) => {
-  const response = await fetch(url);
+const fetchTestData = async (url: string, advancedSettings:TestSettings) => {
+  const response = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({
+        timepulse_amplitude: advancedSettings.maskerLevel,
+        grid_size: advancedSettings.gridSize,
+        grid_step: advancedSettings.gridStep,
+        sample_rate: advancedSettings.sampleRate,
+        total_duration: advancedSettings.totalDuration,
+        timepulse_location: advancedSettings.maskerLocation,
+        timepulse_duration: advancedSettings.maskerDuration,
+        raise_type: advancedSettings.raiseType
+    }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
@@ -55,7 +74,7 @@ const fetchCombinedSignals = async (url: string, maskerAudioBase64: string, mask
 
 
 
-export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTestEnd }: MaskingTestProps) => {
+export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSettings, minGain, onTestEnd }: MaskingTestProps) => {
   const [currentStage, setCurrentStage] = useState(0);
   const [currentMaskee, setCurrentMaskee] = useState<any>(null);
   const [combinedAudio, setCombinedAudio] = useState<any>(null);
@@ -72,8 +91,9 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
     setCurrentStage(newStage);
     let newSavedGains = [...savedGains, displayMaskeeGain];
     setSavedGains(newSavedGains);
-    console.log(newSavedGains)
+    console.log(newSavedGains);
     setCurrentMaskeeGain(0);
+    setDisplayMaskeeGain(-minGain);
     if (newStage >= data.maskees.length) {
       onTestEnd(newSavedGains);
       return;
@@ -104,7 +124,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
     useEffect(() => {
       const fetchData = async () => {
 
-          const jsonData = await fetchTestData(url);
+          const jsonData = await fetchTestData(url, advancedSettings);
           const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', jsonData.maskerAudioBase64, jsonData.maskeesAudioBase64[currentStage]);
           setLoadingCombinedAudio(false);
           setData(jsonData);
@@ -218,6 +238,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, minGain, onTe
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"><path d="m11 19l6-7l-6-7"/><path d="m7 19l6-7l-6-7"/></g></svg>
         </Button>
       </div>
+      
     </div>
     
   );

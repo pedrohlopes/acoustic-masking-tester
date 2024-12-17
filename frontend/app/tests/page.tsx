@@ -1,12 +1,22 @@
 'use client';
 import { subtitle, title } from "@/components/primitives";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {CheckboxGroup, Checkbox, Button} from "@nextui-org/react";
 import {button as buttonStyles} from "@nextui-org/theme";
 import {MaskingTest} from "@/components/maskingTest";
 import { CalibrationStage } from "@/components/calibration";
 import { fixedMaskingConfigs } from "@/config/masking";
 import { TestResults } from "@/components/testResults";
+import { TestSettings, defaultTestSettings } from "@/components/settingsModal";
+
+const getGridFromSizeStepAndCenter = (size: number, step: number, center: number) => {
+  const grid = [];
+  for (let i = 0; i < size; i++) {
+    grid.push(center + (i - Math.floor(size / 2)) * step);
+  }
+  return grid;
+}
+
 
 export default function TestsPage() {
   const [invalidMasker,setInvalidMasker] = React.useState(false);
@@ -20,10 +30,26 @@ export default function TestsPage() {
   const [stage,setStage] = React.useState(0);
   const [testComplete,setTestComplete] = React.useState(false);
   const maskingTypes = fixedMaskingConfigs['maskingTypes'];
+  const [testSettings, setTestSettings] = React.useState<TestSettings>(defaultTestSettings);
+  const [grid, setGrid] = React.useState<number[]>([]);
+
+  useEffect(() => {
+    const newGrid = getGridFromSizeStepAndCenter(testSettings.gridSize, testSettings.gridStep, testSettings.maskerLocation);
+    setGrid(newGrid);
+  }, [testSettings.gridSize, testSettings.gridStep, testSettings.maskerLocation]);
+
+  
+
 
   const handleTestEnd = (savedGains: number[]) => {
-    setTestComplete(true);
+
     setUserResponses(savedGains);
+    console.log(savedGains);
+    console.log(grid);
+    console.log(testSettings);
+    console.log(calibrationGain);
+    console.log(testSettings.maskerLevel - calibrationGain);
+    setTimeout(() => setTestComplete(true), 500);
   }
 
   
@@ -35,16 +61,16 @@ export default function TestsPage() {
       </p>}
 
       { !calibrated ? (
-        <CalibrationStage onCalibrated={(gain) => {setCalibrated(true); setCalibrationGain(gain)}} />
+        <CalibrationStage testSettings={testSettings} setTestSettings={setTestSettings} onCalibrated={(gain) => {setCalibrated(true); setCalibrationGain(gain);}} />
   
       )
       :
 
       testComplete ? (
-        <TestResults selectedGains={userResponses} grid={[0.49, 0.492, 0.494, 0.496, 0.498, 0.5,   0.502, 0.504, 0.506, 0.508]} 
+        <TestResults selectedGains={userResponses} grid={grid} 
         maskerInfo={{
-          placement: 0.5,
-          gain: -3
+          placement: testSettings.maskerLocation,
+          gain: testSettings.maskerLevel
         }}
         minGain={calibrationGain}
         />
@@ -113,7 +139,11 @@ export default function TestsPage() {
       </Button>
       </>
       ) : (
-        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]]['masker']} maskeeType={maskingTypes[selectedMaskingType[0]]['maskee']} maskingType={selectedMaskingType[0]} minGain={calibrationGain} onTestEnd={handleTestEnd} />
+        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]]['masker']}
+          maskeeType={maskingTypes[selectedMaskingType[0]]['maskee']} 
+          maskingType={selectedMaskingType[0]} minGain={calibrationGain}
+          advancedSettings={testSettings} 
+          onTestEnd={handleTestEnd} />
       ))}
     </div>
   );
