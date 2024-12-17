@@ -10,3 +10,9 @@ git clone https://github.com/pedrohlopes/acoustic-masking-tester.git
 cd acoustic-masking-tester 
 bash install.sh
 ```
+
+## Running the app
+To run the app, just run the following command:
+```bash
+bash run.sh
+```
