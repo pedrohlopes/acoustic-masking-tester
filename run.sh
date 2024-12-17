@@ -28,7 +28,7 @@ cd ..
 # Start backend
 cd backend
 eval "$(conda shell.bash hook)"
-conda activate mask
+conda activate masking-tests
 python mock_api.py &
 backend_pid=$!
 cd ..
