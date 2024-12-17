@@ -1,4 +1,4 @@
-# acoustic-masking-tester
+# Acoustic Masking Tester
 
 
 ## Installation steps
