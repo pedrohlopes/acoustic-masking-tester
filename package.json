@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "dotenv": "^16.4.7",
+    "turso": "^0.1.0"
+  }
+}

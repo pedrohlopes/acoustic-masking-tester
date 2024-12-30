@@ -9,6 +9,18 @@ import { Slider, Spinner } from "@nextui-org/react";
 import { button as buttonStyles } from "@nextui-org/theme";
 import { TestSettings } from "./settingsModal";
 
+import { createClient } from "@libsql/client";
+console.log(process.env);
+
+const client = createClient({
+  url: process.env.NEXT_PUBLIC_TURSO_DATABASE_URL || "",
+  authToken: process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN,
+});
+
+client.execute("SELECT * FROM my_database").then((result) => {
+  console.log(result);
+} )
+
 interface MaskingTestProps {
   maskerType: string;
   maskeeType: string;
@@ -18,17 +30,21 @@ interface MaskingTestProps {
   onTestEnd: (savedGains: number[]) => void;
 }
 
-const fetchTestData = async (url: string, advancedSettings:TestSettings) => {
+const fetchTestData = async (url: string, maskerType: string,maskeeType: string, maskingType:string, advancedSettings:TestSettings) => {
   const response = await fetch(url, {
     method: 'POST',
     body: JSON.stringify({
+        masker_type: maskerType,
+        maskee_type: maskeeType,
+        masking_type: maskingType,
         timepulse_amplitude: advancedSettings.maskerLevel,
         grid_size: advancedSettings.gridSize,
-        grid_step: advancedSettings.gridStep,
+        grid_step: maskingType== 'time'? advancedSettings.timeStep: advancedSettings.frequencyStep,
         sample_rate: advancedSettings.sampleRate,
         total_duration: advancedSettings.totalDuration,
-        timepulse_location: advancedSettings.maskerLocation,
-        timepulse_duration: advancedSettings.maskerDuration,
+        time_location: advancedSettings.maskerLocation,
+        masker_frequency: advancedSettings.maskerFrequency,
+        pulse_duration: advancedSettings.pulseDuration,
         raise_type: advancedSettings.raiseType
     }),
     headers: {
@@ -111,9 +127,9 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSetti
     }
     setLoadingCombinedAudio(true);
     const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain + minGain);
-    const combinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
-    combinedAudio.play();
-    setCombinedAudio(combinedAudio);
+    const newCombinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
+    newCombinedAudio.play();
+    setCombinedAudio(newCombinedAudio);
     setLoadingCombinedAudio(false);
   }
 
@@ -124,7 +140,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSetti
     useEffect(() => {
       const fetchData = async () => {
 
-          const jsonData = await fetchTestData(url, advancedSettings);
+          const jsonData = await fetchTestData(url,maskerType,maskeeType,maskingType, advancedSettings);
           const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', jsonData.maskerAudioBase64, jsonData.maskeesAudioBase64[currentStage]);
           setLoadingCombinedAudio(false);
           setData(jsonData);

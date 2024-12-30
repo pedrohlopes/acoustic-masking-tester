@@ -24,6 +24,11 @@ export const fixedMaskingConfigs = {
             "masker": "tone",
             "maskee": "narrowband-noise"
         },
+        "noiseMaskedByNoise":{
+            "title": "Narrowband noise masked by narrowband noise",
+            "masker": "narrowband-noise",
+            "maskee": "narrowband-noise"
+        }
         }
     }
   }

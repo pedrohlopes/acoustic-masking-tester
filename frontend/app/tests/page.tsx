@@ -32,7 +32,7 @@ export default function TestsPage() {
   const maskingTypes = fixedMaskingConfigs['maskingTypes'];
   const [testSettings, setTestSettings] = React.useState<TestSettings>(defaultTestSettings);
   const [grid, setGrid] = React.useState<number[]>([]);
-
+  console.log(selectedTest)
   useEffect(() => {
     const newGrid = getGridFromSizeStepAndCenter(testSettings.gridSize, testSettings.gridStep, testSettings.maskerLocation);
     setGrid(newGrid);
@@ -42,7 +42,7 @@ export default function TestsPage() {
 
 
   const handleTestEnd = (savedGains: number[]) => {
-
+    
     setUserResponses(savedGains);
     console.log(savedGains);
     console.log(grid);
@@ -97,14 +97,14 @@ export default function TestsPage() {
       </CheckboxGroup>
 
       {selectedMaskingType && (
-
+          <div className="flex flex-col items-center justify-center text-center">
           <CheckboxGroup
             isRequired
             isInvalid={invalidMasker}
             label="Select masker"
             orientation="horizontal"
             value={selectedTest}
-            className="mt-4"
+            className="mt-4 flex items-center justify-center content-center gap-2 text-center"
             onValueChange={(value) => {
               setInvalidMasker(value.length < 1);
               console.log(value);
@@ -112,13 +112,13 @@ export default function TestsPage() {
             }}
           >
             {selectedMaskingType[0] && Object.keys(maskingTypes[selectedMaskingType[0]]).map((masker) => (
-              <Checkbox key={masker} value={masker}>
+              <Checkbox key={masker} value={masker} className="flex items-center content-center justify-center text-center">
                 {maskingTypes[selectedMaskingType[0]][masker].title}
               </Checkbox>
             ))}
           </CheckboxGroup>
 
-          
+          </div>
       )}
       <Button
             className={buttonStyles({color: "primary"})}
@@ -139,8 +139,8 @@ export default function TestsPage() {
       </Button>
       </>
       ) : (
-        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]]['masker']}
-          maskeeType={maskingTypes[selectedMaskingType[0]]['maskee']} 
+        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]][selectedTest]['masker']}
+          maskeeType={maskingTypes[selectedMaskingType[0]][selectedTest]['maskee']} 
           maskingType={selectedMaskingType[0]} minGain={calibrationGain}
           advancedSettings={testSettings} 
           onTestEnd={handleTestEnd} />

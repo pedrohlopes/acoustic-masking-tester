@@ -51,11 +51,11 @@ export default function RootLayout({
               <Link
                 isExternal
                 className="flex items-center gap-1 text-current"
-                href="https://en.wikipedia.org/wiki/Sound_masking"
-                title="nextui.org homepage"
+                href="https://en.wikipedia.org/wiki/Auditory_masking"
+                title="Auditory masking by wikipedia"
               >
                 <span className="text-default-600">What is </span>
-                <p className="text-primary">Acoustic Masking?</p>
+                <p className="text-primary">Auditory Masking?</p>
               </Link>
             </footer>
           </div>

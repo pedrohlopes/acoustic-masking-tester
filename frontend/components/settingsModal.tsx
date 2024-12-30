@@ -10,6 +10,8 @@ import {
     Button,
     useDisclosure,
     Slider,
+    Select,
+    SelectItem
   } from "@nextui-org/react";
 
 
@@ -23,22 +25,28 @@ export interface SettingsModalProps {
 export interface TestSettings {
     maskerLevel: number;
     gridSize: number;
-    gridStep: number;
+    timeStep: number;
+    frequencyStep: number;
     sampleRate: number;
     totalDuration: number;
+    maskerFrequency: number;
     maskerLocation: number;
-    maskerDuration: number;
+    pulseDuration: number;
+    toneDuration: number;
     raiseType: string;
 }
 
 export const defaultTestSettings: TestSettings = {
     maskerLevel: -3,
     gridSize: 10,
-    gridStep: 0.02,
+    timeStep: 0.02,
+    maskerFrequency: 1000,
+    frequencyStep: 100,
     sampleRate: 44100,
     totalDuration: 1.0,
     maskerLocation: 0.5,
-    maskerDuration: 0.005,
+    pulseDuration: 0.005,
+    toneDuration: 0.8,
     raiseType: "exponential",
 };
 
@@ -98,18 +106,35 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                     />
                   </div>
                   <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Grid Step (s):</p>
+                    <p className='text-sm max-w-[50%]'>Time Step (s):</p>
                     <Input
                       type="number"
                       className='max-w-[40%]'
-                      value={testSettings.gridStep>=0? testSettings.gridStep.toString(): ""}
+                      value={testSettings.timeStep>=0? testSettings.timeStep.toString(): ""}
                       onChange={(e) => {
                         const value = parseInt(e.target.value);
                         if (!isNaN(value)) {
-                          setTestSettings({ ...testSettings, gridStep: value });
+                          setTestSettings({ ...testSettings, timeStep: value });
                         }
                         else {
-                          setTestSettings({ ...testSettings, gridStep: -1 });
+                          setTestSettings({ ...testSettings, timeStep: -1 });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Frequency Step (Hz):</p>
+                    <Input
+                      type="number"
+                      className='max-w-[40%]'
+                      value={testSettings.frequencyStep>=0? testSettings.frequencyStep.toString(): ""}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!isNaN(value)) {
+                          setTestSettings({ ...testSettings, frequencyStep: value });
+                        }
+                        else {
+                          setTestSettings({ ...testSettings, frequencyStep: -1 });
                         }
                       }}
                     />
@@ -149,10 +174,11 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                     />
                   </div>
                   <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Masker Location:</p>
+                    <p className='text-sm max-w-[50%]'>Masker Center in time (s):</p>
                     <Input
                       type="number"
                       className='max-w-[40%]'
+                      step={0.1}
                       value={testSettings.maskerLocation>=0? testSettings.maskerLocation.toString(): ""}
                       onChange={(e) => {
                         const value = parseFloat(e.target.value);
@@ -166,33 +192,75 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                     />
                   </div>
                   <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Masker Duration (s):</p>
+                    <p className='text-sm max-w-[50%]'>Masker Frequency (Hz):</p>
                     <Input
                       type="number"
                       className='max-w-[40%]'
-                      value={testSettings.maskerDuration>=0? testSettings.maskerDuration.toString(): ""}
+                      step={100}
+                      value={testSettings.maskerFrequency>=0? testSettings.maskerFrequency.toString(): ""}
                       onChange={(e) => {
-                        const value = parseFloat(e.target.value);
+                        const value = parseInt(e.target.value);
                         if (!isNaN(value)) {
-                          setTestSettings({ ...testSettings, maskerDuration: value });
+                          setTestSettings({ ...testSettings, maskerFrequency: value });
                         }
                         else {
-                          setTestSettings({ ...testSettings, maskerDuration: -1 });
+                          setTestSettings({ ...testSettings, maskerFrequency: -1 });
                         }
                       }}
                     />
                   </div>
                   <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Raise Type:</p>
+                    <p className='text-sm max-w-[50%]'>Pulse Duration (s):</p>
                     <Input
-                      type="text"
+                      type="number"
                       className='max-w-[40%]'
-                      value={testSettings.raiseType}
+                      step={0.001}
+                      value={testSettings.pulseDuration>=0? testSettings.pulseDuration.toString(): ""}
                       onChange={(e) => {
-                        setTestSettings({ ...testSettings, raiseType: e.target.value });
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          setTestSettings({ ...testSettings, pulseDuration: value });
+                        }
+                        else {
+                          setTestSettings({ ...testSettings, pulseDuration: -1 });
+                        }
                       }}
                     />
                   </div>
+                  <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Tone Duration (s):</p>
+                    <Input
+                      type="number"
+                      className='max-w-[40%]'
+                      step={0.1}
+                      value={testSettings.toneDuration>=0? testSettings.toneDuration.toString(): ""}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          setTestSettings({ ...testSettings, toneDuration: value });
+                        }
+                        else {
+                          setTestSettings({ ...testSettings, toneDuration: -1 });
+                        }
+                      }}
+                    />
+                  </div>
+                    <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Raise Type:</p>
+                    <Select
+                      value={testSettings.raiseType}
+                      className='max-w-[40%]'
+                      defaultSelectedKeys={["exponential"]}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        console.log(value);
+                        setTestSettings({ ...testSettings, raiseType: value });
+                      }}
+                    >
+                      <SelectItem value="exponential" key={'exponential'}>Exponential</SelectItem>
+                      <SelectItem value="linear" key={'linear'}>Linear</SelectItem>
+                    </Select>
+                    </div>
                   
                   
                 </div>

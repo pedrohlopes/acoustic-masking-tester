@@ -1,8 +1,8 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Masking tester",
-  description: "Make perceptive tests to understand the acoustic masking effect on your hearing",
+  name: "Auditory masking tester",
+  description: "Make perceptive tests to understand the auditory masking effect on your hearing",
   navItems: [
     {
       label: "Home",

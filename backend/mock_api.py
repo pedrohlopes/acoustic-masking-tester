@@ -96,19 +96,22 @@ def mock_gen_signals(
     grid_step = configs.get('grid_step', 0.01)
     sample_rate = configs.get('sample_rate', 44100)
     total_duration = configs.get('total_duration', 1.0)
-    timepulse_location = configs.get('timepulse_location', 0.5)
-    timepulse_duration = configs.get('timepulse_duration', 0.005)
-    timepulse_amplitude = 10**(configs.get('timepulse_gain', -3)/20)
+    time_location = configs.get('time_location', 0.5)
+    duration = configs.get('duration', 0.005)
+    amplitude = 10**(configs.get('masker_gain', -3)/20)
     raise_type = configs.get('raise_type', 'exponential')
-    print('mock_gen_signals', configs)
+    masker_type = configs.get('masker_type', 'pulse')
+    maskee_type = configs.get('maskee_type', 'pulse')
     
-    masker = generate_pulse(sample_rate, total_duration, timepulse_location, timepulse_duration, timepulse_amplitude, raise_type)
+
+    masker = generate_pulse(sample_rate, total_duration, time_location, duration, amplitude, raise_type)
+        
     masker_file = io.BytesIO()
     sf.write(masker_file, masker, sample_rate, format='WAV')
-    grid_locations = timepulse_location + np.arange(-grid_size // 2, grid_size // 2) * grid_step
+    grid_locations = time_location + np.arange(-grid_size // 2, grid_size // 2) * grid_step
     maskee_signals = []
     for loc in grid_locations:
-        maskee_signal = generate_pulse(sample_rate, total_duration, loc, timepulse_duration, timepulse_amplitude, raise_type)
+        maskee_signal = generate_pulse(sample_rate, total_duration, loc, duration, amplitude, raise_type)
         maskee_file = io.BytesIO()
         sf.write(maskee_file, maskee_signal, sample_rate, format='WAV')
         maskee_signals.append(maskee_file)
