@@ -1,7 +1,7 @@
 'use client';
 import { subtitle, title } from "@/components/primitives";
 import React, { useEffect, useState } from "react";
-import {CheckboxGroup, Checkbox, Button} from "@nextui-org/react";
+import {CheckboxGroup, Checkbox, Button, Input} from "@nextui-org/react";
 import {button as buttonStyles} from "@nextui-org/theme";
 import {MaskingTest} from "@/components/maskingTest";
 import { CalibrationStage } from "@/components/calibration";
@@ -25,18 +25,23 @@ export default function TestsPage() {
   const [selectedTest, setSelectedTest] = React.useState(["pulse"]);
   const [selectedMaskingType, setSelectedMaskingType] = React.useState(["time"]);
   const [userResponses, setUserResponses] = React.useState<number[]>([]);
-  const [calibrated,setCalibrated] = React.useState(false);
   const [calibrationGain,setCalibrationGain] = React.useState(0);
   const [stage,setStage] = React.useState(0);
   const [testComplete,setTestComplete] = React.useState(false);
   const maskingTypes = fixedMaskingConfigs['maskingTypes'];
   const [testSettings, setTestSettings] = React.useState<TestSettings>(defaultTestSettings);
   const [grid, setGrid] = React.useState<number[]>([]);
+  const [userName, setUserName] = React.useState<string>("");
+
+
+
   console.log(selectedTest)
   useEffect(() => {
-    const newGrid = getGridFromSizeStepAndCenter(testSettings.gridSize, testSettings.gridStep, testSettings.maskerLocation);
+    const newGrid = getGridFromSizeStepAndCenter(testSettings.gridSize,
+                                                  selectedMaskingType[0] == 'time'? testSettings.timeStep: testSettings.frequencyStep,
+                                                  selectedMaskingType[0] == 'time' ? testSettings.maskerLocation: testSettings.maskerFrequency);
     setGrid(newGrid);
-  }, [testSettings.gridSize, testSettings.gridStep, testSettings.maskerLocation]);
+  }, [testSettings.gridSize, testSettings.timeStep, testSettings.frequencyStep,selectedMaskingType, testSettings.maskerLocation]);
 
   
 
@@ -44,11 +49,6 @@ export default function TestsPage() {
   const handleTestEnd = (savedGains: number[]) => {
     
     setUserResponses(savedGains);
-    console.log(savedGains);
-    console.log(grid);
-    console.log(testSettings);
-    console.log(calibrationGain);
-    console.log(testSettings.maskerLevel - calibrationGain);
     setTimeout(() => setTestComplete(true), 500);
   }
 
@@ -56,46 +56,62 @@ export default function TestsPage() {
   return (
     <div>
       <h1 className={title()}>Masking tests</h1>
-      {!stage && !testComplete && <p className="mt-4 mb-4">
-        Start by calibrating your audio output device. Then, select the masker, maskee, and masking type to begin the test.
+      {!stage && !testComplete && <p className="mt-4 mb-4"> Welcome to the masking tests!
       </p>}
 
-      { !calibrated ? (
-        <CalibrationStage testSettings={testSettings} setTestSettings={setTestSettings} onCalibrated={(gain) => {setCalibrated(true); setCalibrationGain(gain);}} />
-  
-      )
-      :
-
+      { 
       testComplete ? (
-        <TestResults selectedGains={userResponses} grid={grid} 
+        <TestResults selectedGains={userResponses} grid={grid} gridType={selectedMaskingType[0]}
         maskerInfo={{
-          placement: testSettings.maskerLocation,
+          placement: selectedMaskingType[0] == 'time'? testSettings.maskerLocation: testSettings.maskerFrequency,
           gain: testSettings.maskerLevel
         }}
         minGain={calibrationGain}
         />
       ) : 
-      (stage == 0   ? (<>
+      stage == 0 ? (
+        <div className="flex flex-col items-center justify-center">
+          <label className='text-md text-black mb-4'>Please enter your name below to start:</label>
+          <Input placeholder="Your name" onChange={(e) => setUserName(e.target.value)} />
+          <Button
+            className={buttonStyles({color: "primary"})}
+            style={{marginTop: "1rem"}}
+            onClick={() => {
+              setStage(1);
+            }}
+          >
+            Begin test
+          </Button>
+        </div>
+
+      ) :
+
+      stage == 1 ? (
+        <CalibrationStage testSettings={testSettings} setTestSettings={setTestSettings} onCalibrated={(gain) => {setStage(2); setCalibrationGain(gain);}} />
+  
+      ) :
+      (stage == 2   ? (<>
       
+      <div className="flex flex-col items-center justify-center">
+        <p className="mt-4">Finally, select the masking test you would like to try:</p>
+        <CheckboxGroup
+          isRequired
+          isInvalid={invalidMaskingType}
+          label="Select masking type"
+          orientation="horizontal"
+          value={selectedMaskingType}
+          className="mt-4 flex items-center justify-center content-center gap-2"
+          onValueChange={(value) => {
+            setInvalidMaskingType(value.length < 1);
+            setSelectedMaskingType([...value.slice(-1)]);
+          }}
+        >
+          <Checkbox value="time">Time</Checkbox>
+          <Checkbox value="frequency">Frequency</Checkbox>
 
-      <CheckboxGroup
-        isRequired
-        isInvalid={invalidMaskingType}
-        label="Select masking type"
-        orientation="horizontal"
-        value={selectedMaskingType}
-        className="mt-4 flex items-center justify-center content-center gap-2"
-        onValueChange={(value) => {
-          setInvalidMaskingType(value.length < 1);
-          setSelectedMaskingType([...value.slice(-1)]);
-        }}
-      >
-        <Checkbox value="time">Time</Checkbox>
-        <Checkbox value="frequency">Frequency</Checkbox>
 
-
-      </CheckboxGroup>
-
+        </CheckboxGroup>
+      </div>
       {selectedMaskingType && (
           <div className="flex flex-col items-center justify-center text-center">
           <CheckboxGroup
@@ -122,7 +138,7 @@ export default function TestsPage() {
       )}
       <Button
             className={buttonStyles({color: "primary"})}
-            style={{marginTop: "1rem"}}
+            style={{marginTop: "2rem"}}
             onClick={() => {
               if (selectedTest.length < 1) {
                 setInvalidMasker(true);
@@ -131,7 +147,7 @@ export default function TestsPage() {
                 setInvalidMaskingType(true);
               }
               if (selectedTest.length > 0 && selectedMaskingType.length > 0) {
-                setStage(1);
+                setStage(3);
               }
             }}
           >

@@ -45,6 +45,11 @@ const fetchTestData = async (url: string, maskerType: string,maskeeType: string,
         time_location: advancedSettings.maskerLocation,
         masker_frequency: advancedSettings.maskerFrequency,
         pulse_duration: advancedSettings.pulseDuration,
+        wideband_noise_type: advancedSettings.WBNoiseType,
+        wideband_noise_duration: advancedSettings.WBNoiseDuration,
+        noise_bandwidth: advancedSettings.noiseBW,
+        tone_duration: advancedSettings.toneDuration,
+        raise_duration: advancedSettings.raiseDuration,
         raise_type: advancedSettings.raiseType
     }),
     headers: {
@@ -126,7 +131,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSetti
       gain = value
     }
     setLoadingCombinedAudio(true);
-    const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain + minGain);
+    const combinedAudioBase64 = await fetchCombinedSignals(process.env.NEXT_PUBLIC_API_URL + '/combine_signals', data.maskerAudioBase64, data.maskeesAudioBase64[currentStage], gain + minGain);
     const newCombinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
     newCombinedAudio.play();
     setCombinedAudio(newCombinedAudio);
@@ -141,7 +146,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSetti
       const fetchData = async () => {
 
           const jsonData = await fetchTestData(url,maskerType,maskeeType,maskingType, advancedSettings);
-          const combinedAudioBase64 = await fetchCombinedSignals('http://localhost:8000/combine_signals', jsonData.maskerAudioBase64, jsonData.maskeesAudioBase64[currentStage]);
+          const combinedAudioBase64 = await fetchCombinedSignals(process.env.NEXT_PUBLIC_API_URL + '/combine_signals', jsonData.maskerAudioBase64, jsonData.maskeesAudioBase64[currentStage]);
           setLoadingCombinedAudio(false);
           setData(jsonData);
           const combinedAudio = new Audio("data:audio/wav;base64," + combinedAudioBase64);
@@ -157,7 +162,7 @@ export const MaskingTest = ({ maskerType, maskeeType, maskingType, advancedSetti
   };
 
 
-  const { data, error } = useFetchJson("http://localhost:8000/mock_gen_signals");
+  const { data, error } = useFetchJson(process.env.NEXT_PUBLIC_API_URL + "/gen_signals");
   
   return (
     <div className="mt-4">

@@ -5,6 +5,7 @@ import io
 import soundfile as sf
 from scipy.signal import butter, lfilter
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 import base64
 import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
@@ -12,6 +13,46 @@ from fastapi.responses import FileResponse
 import matplotlib
 
 app = FastAPI()
+
+# Allow CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+def noise_psd(N, psd = lambda f: 1):
+    X_white = np.fft.rfft(np.random.randn(N))
+    S = psd(np.fft.rfftfreq(N))
+    # Normalize S
+    S = S / np.sqrt(np.mean(S**2))
+    X_shaped = X_white * S
+    return np.fft.irfft(X_shaped)
+
+def PSDGenerator(f):
+    return lambda N: noise_psd(N, f)
+
+@PSDGenerator
+def white_noise(f):
+    return 1;
+
+@PSDGenerator
+def blue_noise(f):
+    return np.sqrt(f);
+
+@PSDGenerator
+def violet_noise(f):
+    return f;
+
+@PSDGenerator
+def brown_noise(f):
+    return 1/np.where(f == 0, float('inf'), f)
+
+@PSDGenerator
+def pink_noise(f):
+    return 1/np.where(f == 0, float('inf'), np.sqrt(f))
 
 def generate_pulse(
         sample_rate: int = 44100,
@@ -21,20 +62,6 @@ def generate_pulse(
         timepulse_amplitude: float = 0.3,
         raise_type: str = 'exponential'
         ) -> np.ndarray:
-    """
-        Generates an audio signal with a pulse and returns it as a WAV file.
-
-        Args:
-            sample_rate (int, optional): The sample rate of the audio signal. Defaults to 44100.
-            total_duration (float, optional): The total duration of the audio signal in seconds. Defaults to 1.0.
-            timepulse_location (float, optional): The location of the time pulse within the audio signal in seconds. Defaults to 0.5.
-            timepulse_duration (float, optional): The duration of the time pulse in seconds. Defaults to 0.005.
-            timepulse_amplitude (float, optional): The amplitude of the time pulse. Defaults to 0.3.
-            raise_type (str, optional): The type of rise for the time pulse. Defaults to 'exponential'.
-
-        Returns:
-            StreamingResponse: A streaming response containing the generated WAV audio file with the generated pulse.
-    """
     base_audio = np.zeros(int(sample_rate * total_duration))
     time_pulse_start = int(sample_rate * timepulse_location) - int(sample_rate * timepulse_duration / 2)
     time_pulse_end = int(sample_rate * timepulse_location) + int(sample_rate * timepulse_duration / 2) - 1 # symmetry, might be bad... TODO: refactor
@@ -47,6 +74,24 @@ def generate_pulse(
     base_audio[time_pulse_start:time_pulse_end] = time_pulse
     return base_audio
 
+@app.post("/generate_calibration_signal", response_class=JSONResponse)
+def generate_calibration_signal(configs:dict) -> dict:
+    gain = configs.get('volume', 0)
+    sample_rate = configs.get('sample_rate', 44100)
+    total_duration = configs.get('total_duration', 1.0)
+    t = np.linspace(0, total_duration, int(sample_rate * total_duration), endpoint=False)
+    frequency = 2000  # 2 kHz
+    amplitude = 10 ** (gain / 20)  # Convert gain from dB to linear scale
+    calibration_signal = amplitude * np.sin(2 * np.pi * frequency * t)
+    signal_file = io.BytesIO()
+    sf.write(signal_file, calibration_signal, sample_rate, format='WAV', subtype='PCM_16')
+    
+    return JSONResponse(content=
+        {
+            "calibration_signal": base64.b64encode(signal_file.getvalue()).decode('utf-8')
+        }
+    )
+
 @app.get("/get_tone")
 def generate_tone(
         sample_rate: int = 44100,
@@ -58,22 +103,7 @@ def generate_tone(
         amplitude: float = 0.3,
         fade_type: str = 'exponential'
     ) -> StreamingResponse:
-    """
-        Generates an audio signal with a tone and returns it as a WAV file.
-
-        Args:
-            sample_rate (int, optional): The sample rate of the audio signal. Defaults to 44100.
-            total_duration (float, optional): The total duration of the audio signal in seconds. Defaults to 1.0.
-            frequency (float, optional): The frequency of the tone in Hz. Defaults to 440.0.
-            center_in_time (float, optional): The location of the tone within the audio signal in seconds. Defaults to 0.5.
-            tone_duration (float, optional): The duration of the tone in seconds. Defaults to 0.005.
-            fade_duration (float, optional): The duration of the fade in and fade out in seconds. Defaults to 0.001.
-            amplitude (float, optional): The amplitude of the tone. Defaults to 0.3.
-            fade_type (str, optional): The type of fade for the tone. Defaults to 'exponential'.
-
-        Returns:
-            StreamingResponse: A streaming response containing the generated WAV audio file with the generated tone.
-    """
+    print('generate_tone', sample_rate, total_duration, frequency, center_in_time, tone_duration, fade_duration, amplitude, fade_type)
     base_audio = np.zeros(int(sample_rate * total_duration))
     tone_start = int(sample_rate * center_in_time) - int(sample_rate * tone_duration / 2)
     tone_end = int(sample_rate * center_in_time) + int(sample_rate * tone_duration / 2)
@@ -93,36 +123,52 @@ def generate_tone(
     buffer.seek(0)
     return base_audio
     #return StreamingResponse(buffer, media_type="audio/wav")
-
-@app.get("/get_noise")
-def generate_noise(
+    
+    
+def generate_wideband_noise(
         sample_rate: int = 44100,
         total_duration: float = 1.0,
-        noise_duration: float = 0.1,
-        center_in_time: float = 0.5,
+        wideband_noise_duration = 0.01,
+        wideband_noise_center_in_time = 0.5,
+        amplitude: float = 0.3,
+        noise_type: str = 'white'
+    ) -> StreamingResponse:
+    base_audio = np.zeros(int(sample_rate * total_duration))
+    noise_start = int(sample_rate * wideband_noise_center_in_time) - int(sample_rate * wideband_noise_duration / 2)
+    noise_end = noise_start + int(sample_rate * wideband_noise_duration)
+    if noise_type == 'white':
+        noise = white_noise(noise_end - noise_start)
+    elif noise_type == 'blue':
+        noise = blue_noise(noise_end - noise_start)
+    elif noise_type == 'violet':
+        noise = violet_noise(noise_end - noise_start)
+    elif noise_type == 'brown':
+        noise = brown_noise(noise_end - noise_start)
+    elif noise_type == 'pink':
+        noise = pink_noise(noise_end - noise_start)
+    
+    noise = amplitude * noise / np.max(np.abs(noise))
+    base_audio[noise_start:noise_start + len(noise)] = noise
+    buffer = io.BytesIO()
+    sf.write(buffer, base_audio, sample_rate, format='WAV')
+    buffer.seek(0)
+    return base_audio
+    
+    
+        
+
+
+def generate_narrowband_noise(
+        sample_rate: int = 44100,
+        total_duration: float = 1.0,
         center_frequency: float = 1000.0,
-        bandwidth: float = 200.0,
+        center_in_time: float = 0.5,
+        noise_duration: float = 0.1,
+        bandwidth_percentage: float = 10.0,
         fade_duration: float = 0.01,
         amplitude: float = 0.3,
         fade_type: str = 'exponential'
     ) -> StreamingResponse:
-    """
-    Generates band-passed Gaussian noise centered at a specific time with fade-in and fade-out, returning it as a WAV file.
-
-    Args:
-        sample_rate (int, optional): The sample rate of the audio signal. Defaults to 44100.
-        total_duration (float, optional): The total duration of the audio signal in seconds. Defaults to 1.0.
-        noise_duration (float, optional): The duration of the noise in seconds. Defaults to 0.1.
-        center_in_time (float, optional): The location of the noise within the audio signal in seconds. Defaults to 0.5.
-        center_frequency (float, optional): The center frequency of the bandpass filter in Hz. Defaults to 1000.0.
-        bandwidth (float, optional): The bandwidth of the bandpass filter in Hz. Defaults to 200.0.
-        fade_duration (float, optional): The duration of the fade-in and fade-out in seconds. Defaults to 0.01.
-        amplitude (float, optional): The amplitude of the noise. Defaults to 0.3.
-        fade_type (str, optional): The type of fade for the noise. Defaults to 'exponential'.
-
-    Returns:
-        StreamingResponse: A streaming response containing the generated WAV audio file with band-passed Gaussian noise.
-    """
     def bandpass_filter(data, lowcut, highcut, fs, order=4):
         nyquist = 0.5 * fs
         low = lowcut / nyquist
@@ -139,8 +185,9 @@ def generate_noise(
 
     # Generate Gaussian white noise
     noise = np.random.normal(0, 1, noise_end - noise_start)
-
+    print(center_frequency, bandwidth_percentage)
     # Define bandpass filter range
+    bandwidth = center_frequency * bandwidth_percentage / 100
     lowcut = center_frequency - bandwidth / 2
     highcut = center_frequency + bandwidth / 2
 
@@ -175,8 +222,8 @@ def generate_noise(
     return base_audio
     #return StreamingResponse(buffer, media_type="audio/wav")
     
-@app.post("/mock_gen_signals", response_class=JSONResponse)
-def mock_gen_signals(
+@app.post("/gen_signals", response_class=JSONResponse)
+def gen_signals(
     configs: dict
     ) -> dict:
     
@@ -185,21 +232,28 @@ def mock_gen_signals(
     sample_rate = configs.get('sample_rate', 44100)
     total_duration = configs.get('total_duration', 1.0)
     time_location = configs.get('time_location', 0.5)
-    duration = configs.get('duration', 0.005)
+    pulse_duration = configs.get('pulse_duration', 0.005)
+    tone_duration = configs.get('tone_duration', 0.8)
     amplitude = 10**(configs.get('masker_gain', -3)/20)
     masker_frequency = configs.get('masker_frequency', 1000.0)
     raise_type = configs.get('raise_type', 'exponential')
     masker_type = configs.get('masker_type', 'pulse')
     maskee_type = configs.get('maskee_type', 'pulse')
     masking_type = configs.get('masking_type', 'time')
+    wideband_noise_type = configs.get('wideband_noise_type', 'white')
+    wideband_noise_duration = configs.get('wideband_noise_duration', 0.01)
+    noise_bandwidth = configs.get('noise_bandwidth', 10.0)
+    raise_duration = configs.get('raise_duration', 0.01)
     
     if masker_type == 'pulse':
-        masker = generate_pulse(sample_rate, total_duration, time_location, duration, amplitude, raise_type)
+        masker = generate_pulse(sample_rate, total_duration, time_location, pulse_duration, amplitude, raise_type)
     elif masker_type == 'tone':
-        masker = generate_tone(sample_rate, total_duration,masker_frequency, time_location, duration, amplitude, raise_type)
-    elif masker_type == 'noise':
-        masker = generate_noise(sample_rate, total_duration, time_location, duration, amplitude, raise_type)
-        
+        masker = generate_tone(sample_rate, total_duration,masker_frequency, time_location, tone_duration,raise_duration, amplitude, raise_type)
+    elif masker_type == 'narrowband-noise':
+        masker = generate_narrowband_noise(sample_rate, total_duration,masker_frequency, time_location, tone_duration, noise_bandwidth,raise_duration, amplitude, raise_type)
+    elif masker_type == 'wideband-noise':
+        masker = generate_wideband_noise(sample_rate, total_duration, wideband_noise_duration, time_location, amplitude, wideband_noise_type)
+    
     masker_file = io.BytesIO()
     sf.write(masker_file, masker, sample_rate, format='WAV')
     if masking_type == 'time':
@@ -209,9 +263,12 @@ def mock_gen_signals(
     maskee_signals = []
     for loc in grid_locations:
         if maskee_type == 'pulse':
-            maskee_signal = generate_pulse(sample_rate, total_duration, loc, duration, amplitude, raise_type)
+            maskee_signal = generate_pulse(sample_rate, total_duration, loc, pulse_duration, amplitude, raise_type)
         elif maskee_type == 'tone':
-            maskee_signal = generate_tone(sample_rate, total_duration, loc,time_location, duration, amplitude, raise_type)
+            maskee_signal = generate_tone(sample_rate, total_duration, loc,time_location, tone_duration, raise_duration, amplitude, raise_type)
+        elif maskee_type == 'narrowband-noise':
+            maskee_signal = generate_narrowband_noise(sample_rate, total_duration,loc, time_location, tone_duration, noise_bandwidth,raise_duration, amplitude, raise_type)
+        
         maskee_file = io.BytesIO()
         sf.write(maskee_file, maskee_signal, sample_rate, format='WAV')
         maskee_signals.append(maskee_file)
@@ -245,8 +302,6 @@ def combine_signals(
             "combined_signal": base64.b64encode(combined_file.getvalue()).decode('utf-8')
         }
     )
-    
-@app.post("/generate_masking_curve", response_class=JSONResponse)
 
 @app.post("/plot_masking_curve", response_class=FileResponse)
 def plot_masking_curve(data: dict) -> FileResponse:
@@ -262,8 +317,10 @@ def plot_masking_curve(data: dict) -> FileResponse:
     """
     maskee_gains = data.get('gains', [])
     grid = data.get('grid', [])
-    masker_info = data.get('maskerInfo', {})
+    grid_type = data.get('grid_type', 'time')
+    masker_info = data.get('masker_info', {})
     masker_placement = masker_info.get('placement', 0.5)
+    grid_label = 'Time (s)' if grid_type == 'time' else 'Frequency (Hz)'
     masker_gain = masker_info.get('gain', 60)
     print(len(maskee_gains), len(grid))
     if not maskee_gains or not grid or len(maskee_gains) != len(grid):
@@ -278,7 +335,7 @@ def plot_masking_curve(data: dict) -> FileResponse:
     plt.vlines(masker_placement, min(maskee_gains), masker_gain, colors='r', linestyles='dashed', label='Masker')
     plt.plot(masker_placement, masker_gain, marker='o', color='r')
     plt.legend()
-    plt.xlabel('Grid')
+    plt.xlabel(grid_label)
     plt.ylabel('Gain (dB)')
     plt.title('Masking Curve')
     plt.grid(True)
@@ -289,30 +346,6 @@ def plot_masking_curve(data: dict) -> FileResponse:
     
     return FileResponse(image_file)
 
-@app.post("/generate_calibration_signal", response_class=JSONResponse)
-def generate_calibration_signal(configs:dict) -> dict:
-    """
-        Generates a calibration signal and returns it as a WAV file.
-        Args:
-            configs (dict): A dictionary containing the configuration parameters for the calibration signal.
-                volume (float, optional): The volume of the calibration signal in dB. Defaults to 0.
-                sample_rate (int, optional): The sample rate of the calibration signal. Defaults to 44100.
-                total_duration (float, optional): The total duration of the calibration signal in seconds. Defaults to 1.0.
-        Returns:
-            JSONResponse: A JSON response containing the generated WAV audio file with the calibration signal.
-    """
-    gain = configs.get('volume', 0)
-    sample_rate = configs.get('sample_rate', 44100)
-    total_duration = configs.get('total_duration', 1.0)
-    t = np.linspace(0, total_duration, int(sample_rate * total_duration), endpoint=False)
-    frequency = 2000  # 2 kHz
-    amplitude = 10 ** (gain / 20)  # Convert gain from dB to linear scale
-    calibration_signal = amplitude * np.sin(2 * np.pi * frequency * t)
-    signal_file = io.BytesIO()
-    sf.write(signal_file, calibration_signal, sample_rate, format='WAV', subtype='PCM_16')
-    
-    return JSONResponse(content=
-        {
-            "calibration_signal": base64.b64encode(signal_file.getvalue()).decode('utf-8')
-        }
-    )
+
+if __name__ == "__main__":
+    uvicorn.run("audio_api:app", host="0.0.0.0", port=8000, reload=True)

@@ -9,8 +9,8 @@ export const fixedMaskingConfigs = {
         },
         "pulseMaskedByNoise": {
             "title": "Pulse masked by wideband noise",
-            "masker": "pulse",
-            "maskee": "wideband-noise"
+            "masker": "wideband-noise",
+            "maskee": "pulse"
         },
         },
         "frequency": {

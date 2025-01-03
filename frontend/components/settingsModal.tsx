@@ -31,8 +31,12 @@ export interface TestSettings {
     totalDuration: number;
     maskerFrequency: number;
     maskerLocation: number;
+    WBNoiseType: string;
+    WBNoiseDuration: number;
+    noiseBW: number;
     pulseDuration: number;
     toneDuration: number;
+    raiseDuration: number;
     raiseType: string;
 }
 
@@ -45,8 +49,12 @@ export const defaultTestSettings: TestSettings = {
     sampleRate: 44100,
     totalDuration: 1.0,
     maskerLocation: 0.5,
+    WBNoiseType: "white",
+    WBNoiseDuration: 0.01,
+    noiseBW: 10,
     pulseDuration: 0.005,
     toneDuration: 0.8,
+    raiseDuration: 0.01,
     raiseType: "exponential",
 };
 
@@ -192,7 +200,7 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                     />
                   </div>
                   <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Masker Frequency (Hz):</p>
+                    <p className='text-sm max-w-[50%]'>Masker Central Frequency (Hz):</p>
                     <Input
                       type="number"
                       className='max-w-[40%]'
@@ -205,6 +213,43 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                         }
                         else {
                           setTestSettings({ ...testSettings, maskerFrequency: -1 });
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Wideband Noise Type:</p>
+                    <Select
+                      value={testSettings.WBNoiseType}
+                      className='max-w-[40%]'
+                      defaultSelectedKeys={["white"]}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        console.log(value);
+                        setTestSettings({ ...testSettings, WBNoiseType: value });
+                      }}
+                    >
+                      <SelectItem value="white" key={'white'}>White</SelectItem>
+                      <SelectItem value="pink" key={'pink'}>Pink</SelectItem>
+                      <SelectItem value="brown" key={'brown'}>Brown</SelectItem>
+                      <SelectItem value="blue" key={'blue'}>Blue</SelectItem>
+                      <SelectItem value="violet" key={'violet'}>Violet</SelectItem>
+                    </Select>
+                  </div>
+                  <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Noise Bandwidth (% Hz, relative to central frequency):</p>
+                    <Input
+                      type="number"
+                      className='max-w-[40%]'
+                      step={5}
+                      value={testSettings.noiseBW>=0? testSettings.noiseBW.toString(): ""}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!isNaN(value)) {
+                          setTestSettings({ ...testSettings, noiseBW: value });
+                        }
+                        else {
+                          setTestSettings({ ...testSettings, noiseBW: -1 });
                         }
                       }}
                     />
@@ -245,22 +290,40 @@ export const SettingsModal = ({ isOpen,onClose, testSettings, setTestSettings }:
                       }}
                     />
                   </div>
-                    <div className="flex flex-row w-full items-center justify-between">
-                    <p className='text-sm max-w-[50%]'>Raise Type:</p>
-                    <Select
-                      value={testSettings.raiseType}
+                  <div className="flex flex-row w-full items-center justify-between">
+                    <p className='text-sm max-w-[50%]'>Raise Duration (s):</p>
+                    <Input
+                      type="number"
                       className='max-w-[40%]'
-                      defaultSelectedKeys={["exponential"]}
+                      step={0.005}
+                      value={testSettings.raiseDuration>=0? testSettings.raiseDuration.toString(): ""}
                       onChange={(e) => {
-                        const value = e.target.value;
-                        console.log(value);
-                        setTestSettings({ ...testSettings, raiseType: value });
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          setTestSettings({ ...testSettings, raiseDuration: value });
+                        }
+                        else {
+                          setTestSettings({ ...testSettings, raiseDuration: -1 });
+                        }
                       }}
-                    >
-                      <SelectItem value="exponential" key={'exponential'}>Exponential</SelectItem>
-                      <SelectItem value="linear" key={'linear'}>Linear</SelectItem>
-                    </Select>
-                    </div>
+                    />
+                  </div>
+                  <div className="flex flex-row w-full items-center justify-between">
+                  <p className='text-sm max-w-[50%]'>Raise Type:</p>
+                  <Select
+                    value={testSettings.raiseType}
+                    className='max-w-[40%]'
+                    defaultSelectedKeys={["exponential"]}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      console.log(value);
+                      setTestSettings({ ...testSettings, raiseType: value });
+                    }}
+                  >
+                    <SelectItem value="exponential" key={'exponential'}>Exponential</SelectItem>
+                    <SelectItem value="linear" key={'linear'}>Linear</SelectItem>
+                  </Select>
+                  </div>
                   
                   
                 </div>

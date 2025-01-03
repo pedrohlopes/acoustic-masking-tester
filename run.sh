@@ -29,7 +29,7 @@ cd ..
 cd backend
 eval "$(conda shell.bash hook)"
 conda activate masking-tests
-python mock_api.py &
+python audio_api.py &
 backend_pid=$!
 cd ..
 

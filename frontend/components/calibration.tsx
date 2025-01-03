@@ -43,7 +43,7 @@ export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: 
   const [toneAudioBase64, setToneAudioBase64] = useState("");
   const [toneAudio, setToneAudio] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const url = "http://localhost:8000/generate_calibration_signal";
+  const url = process.env.NEXT_PUBLIC_API_URL + "/generate_calibration_signal";
 
   useEffect(() => {
     fetchCalibrationTone(url, volume).then((tone) => {
@@ -55,10 +55,16 @@ export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: 
 
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
+      <p className="text-center">Before we start, we need to calibrate your audio settings. <br></br>
+      You will hear a tone and select the bottom loudness hearable limit with a slider. <br></br>
+      Please make sure your OS upper volume limit is somewhere reasonably loud, as this will affect the dinamic range we can work with.<br></br>
+      
+      </p>
+      {!calibrating ? <p className="text-center mt-[-1rem]">Oh, and if you need to change any specific settings, this is the time to do it! you can do so by clicking the button on the bottom right.</p>: null}
         {(calibrating ? 
           (
             <div className="flex flex-col gap-3 w-full items-center justify-center"> 
-            <p> Adjust the slider until the tone is barely hearable (move to hear the tone)</p>
+            <p> Adjust the slider until the tone is barely hearable <br></br>(move to hear the tone)</p>
           <Slider
             value={volume}
             onChange={(value) => {

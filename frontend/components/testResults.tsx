@@ -10,6 +10,7 @@ interface MaskerInfo {
 interface TestResultProps {
   selectedGains: number[];
   grid: number[];
+  gridType: string;
   maskerInfo: MaskerInfo;
   minGain: number;
 }
@@ -17,7 +18,7 @@ interface TestResultProps {
 
 
 
-const fetchTestResultImage = async (url: string, gains: number[], grid: number[], maskerInfo: MaskerInfo, minGain: number) => {
+const fetchTestResultImage = async (url: string, gains: number[], grid: number[], gridType:string, maskerInfo: MaskerInfo, minGain: number) => {
   maskerInfo.gain = maskerInfo.gain - minGain
   const response = await fetch(url, {
     method: 'POST',
@@ -27,8 +28,9 @@ const fetchTestResultImage = async (url: string, gains: number[], grid: number[]
 
     body: JSON.stringify({
       gains: gains,
-      maskerInfo: maskerInfo,
-      grid: grid
+      masker_info: maskerInfo,
+      grid: grid,
+      grid_type: gridType
     })
   });
   if (!response.ok) {
@@ -45,14 +47,14 @@ const fetchTestResultImage = async (url: string, gains: number[], grid: number[]
 
 
 
-export const TestResults = ({ selectedGains, grid, maskerInfo, minGain }: TestResultProps) => {
+export const TestResults = ({ selectedGains, grid,gridType, maskerInfo, minGain }: TestResultProps) => {
   
 
   const [image, setImage] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(true);
   const fetchImage = async () => {
     try {
-      const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid, maskerInfo, minGain);
+      const imageUrl = await fetchTestResultImage('http://localhost:8000/plot_masking_curve', selectedGains, grid, gridType, maskerInfo, minGain);
       setImage(imageUrl);
     } catch (error) {
       console.error("Failed to fetch image:", error);
