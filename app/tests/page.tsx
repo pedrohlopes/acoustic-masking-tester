@@ -18,6 +18,13 @@ const getGridFromSizeStepAndCenter = (size: number, step: number, center: number
   return grid;
 }
 
+const randomSeed = 51;
+
+
+
+
+
+
 
 export default function TestsPage() {
   const [invalidMasker,setInvalidMasker] = React.useState(false);
@@ -29,7 +36,9 @@ export default function TestsPage() {
   const [calibrationGain,setCalibrationGain] = React.useState(0);
   const [stage,setStage] = React.useState(0);
   const [testComplete,setTestComplete] = React.useState(false);
-  const maskingTypes = fixedMaskingConfigs['maskingTypes'];
+  const maskingTypes: Record<string, Record<string, { title: string; masker: string; maskee: string }>> = fixedMaskingConfigs['maskingTypes'];
+
+
   const [testSettings, setTestSettings] = React.useState<TestSettings>(defaultTestSettings);
   const [grid, setGrid] = React.useState<number[]>([]);
   const [userName, setUserName] = React.useState<string>("");
@@ -72,12 +81,12 @@ export default function TestsPage() {
       ) : 
       stage == 0 ? (
         <div className="flex flex-col items-center justify-center">
-          <label className='text-md text-black dark:text-white mb-4'>Please enter your name below to start:</label>
+          <p className='text-md text-black dark:text-white mb-4'>Please enter your name below to start:</p>
           <Input placeholder="Your name" onChange={(e) => setUserName(e.target.value)} />
           <Button
             className={buttonStyles({color: "primary"})}
             style={{marginTop: "1rem"}}
-            onClick={() => {
+            onPress={() => {
               setStage(1);
             }}
           >
@@ -140,7 +149,7 @@ export default function TestsPage() {
       <Button
             className={buttonStyles({color: "primary"})}
             style={{marginTop: "2rem"}}
-            onClick={() => {
+            onPress={() => {
               if (selectedTest.length < 1) {
                 setInvalidMasker(true);
               }
@@ -156,8 +165,8 @@ export default function TestsPage() {
       </Button>
       </>
       ) : (
-        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]][selectedTest]['masker']}
-          maskeeType={maskingTypes[selectedMaskingType[0]][selectedTest]['maskee']} 
+        <MaskingTest maskerType={maskingTypes[selectedMaskingType[0]][selectedTest[0]]['masker']}
+          maskeeType={maskingTypes[selectedMaskingType[0]][selectedTest[0]]['maskee']} 
           maskingType={selectedMaskingType[0]} minGain={calibrationGain}
           advancedSettings={testSettings} 
           onTestEnd={handleTestEnd} />
