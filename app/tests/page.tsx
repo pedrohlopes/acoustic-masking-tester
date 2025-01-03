@@ -72,7 +72,7 @@ export default function TestsPage() {
       ) : 
       stage == 0 ? (
         <div className="flex flex-col items-center justify-center">
-          <label className='text-md text-black mb-4'>Please enter your name below to start:</label>
+          <label className='text-md text-black dark:text-white mb-4'>Please enter your name below to start:</label>
           <Input placeholder="Your name" onChange={(e) => setUserName(e.target.value)} />
           <Button
             className={buttonStyles({color: "primary"})}
