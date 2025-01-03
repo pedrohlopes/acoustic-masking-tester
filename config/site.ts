@@ -12,6 +12,10 @@ export const siteConfig = {
       label: "Tests",
       href: "/tests",
     },
+    {
+      label: "Statistics",
+      href: "/stats",
+    }
   ],
   navMenuItems: [
     {
@@ -22,6 +26,10 @@ export const siteConfig = {
       label: "Tests",
       href: "/tests",
     },
+    {
+      label: "Statistics",
+      href: "/stats",
+    }
   ],
   links: {
     github: "https://github.com/pedrohlopes/acoustic-masking-tester",

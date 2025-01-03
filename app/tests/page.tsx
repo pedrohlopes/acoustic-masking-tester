@@ -7,8 +7,9 @@ import {button as buttonStyles} from "@nextui-org/theme";
 import {MaskingTest} from "@/components/maskingTest";
 import { CalibrationStage } from "@/components/calibration";
 import { fixedMaskingConfigs } from "@/config/masking";
-import { TestResults } from "@/components/testResults";
+import { TestResult } from "@/components/testResult";
 import { TestSettings, defaultTestSettings } from "@/components/settingsModal";
+import { insertRow } from "@/utils/DBHelpers";
 
 const getGridFromSizeStepAndCenter = (size: number, step: number, center: number) => {
   const grid = [];
@@ -17,8 +18,6 @@ const getGridFromSizeStepAndCenter = (size: number, step: number, center: number
   }
   return grid;
 }
-
-const randomSeed = 51;
 
 
 
@@ -35,6 +34,7 @@ export default function TestsPage() {
   const [userResponses, setUserResponses] = React.useState<number[]>([]);
   const [calibrationGain,setCalibrationGain] = React.useState(0);
   const [stage,setStage] = React.useState(0);
+  const [allowSaveResults, setAllowSaveResults] = React.useState(true);
   const [testComplete,setTestComplete] = React.useState(false);
   const maskingTypes: Record<string, Record<string, { title: string; masker: string; maskee: string }>> = fixedMaskingConfigs['maskingTypes'];
 
@@ -59,25 +59,44 @@ export default function TestsPage() {
   const handleTestEnd = (savedGains: number[]) => {
     
     setUserResponses(savedGains);
+    if (allowSaveResults) {
+      const data = {
+        name: userName,
+        testType: selectedTest[0],
+        calibrationGain: calibrationGain,
+        grid: JSON.stringify(grid),
+        gridType: selectedMaskingType[0],
+        advancedSettings: JSON.stringify(testSettings),
+        responses: JSON.stringify(savedGains),
+        maskerInfo: JSON.stringify({
+          placement: selectedMaskingType[0] == 'time'? testSettings.maskerLocation: testSettings.maskerFrequency,
+          gain: testSettings.maskerLevel
+        })
+      }
+      insertRow('test_results', data);
+      
+    }
     setTimeout(() => setTestComplete(true), 500);
   }
 
   
   return (
-    <div>
+    <div className="flex flex-col items-center justify-center w-xxl">
       <h1 className={title()}>Masking tests</h1>
       {!stage && !testComplete && <p className="mt-4 mb-4"> Welcome to the masking tests!
       </p>}
 
       { 
       testComplete ? (
-        <TestResults selectedGains={userResponses} grid={grid} gridType={selectedMaskingType[0]}
+        <div className="flex flex-col items-center justify-center h-[60vh] w-xxl">
+        <TestResult selectedGains={userResponses} grid={grid} gridType={selectedMaskingType[0]}
         maskerInfo={{
           placement: selectedMaskingType[0] == 'time'? testSettings.maskerLocation: testSettings.maskerFrequency,
           gain: testSettings.maskerLevel
         }}
         minGain={calibrationGain}
         />
+        </div>
       ) : 
       stage == 0 ? (
         <div className="flex flex-col items-center justify-center">
@@ -92,6 +111,9 @@ export default function TestsPage() {
           >
             Begin test
           </Button>
+          <Checkbox defaultSelected size="sm" className='mt-2' checked={allowSaveResults} onChange={(e) => setAllowSaveResults(e.target.checked)}>
+            I agree to make my data available for future reference and research.
+          </Checkbox>
         </div>
 
       ) :

@@ -10,14 +10,14 @@ import { button as buttonStyles } from "@nextui-org/theme";
 import { TestSettings } from "./settingsModal";
 
 import { createClient } from "@libsql/client";
-console.log(process.env);
+
 
 const client = createClient({
   url: process.env.NEXT_PUBLIC_TURSO_DATABASE_URL || "",
   authToken: process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN,
 });
 
-client.execute("SELECT * FROM my_database").then((result) => {
+client.execute("SELECT * FROM test_results").then((result) => {
   console.log(result);
 } )
 

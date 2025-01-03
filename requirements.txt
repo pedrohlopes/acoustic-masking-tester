@@ -2,5 +2,4 @@ fastapi
 uvicorn
 numpy
 soundfile
-scipy
 matplotlib
