@@ -23,7 +23,7 @@ ChartJS.register(
   Legend
 );
 
-export const options = {
+const options = {
   responsive: true,
   maintainAspectRatio: false,
   scales: {
@@ -59,6 +59,9 @@ export const options = {
                   label += context.parsed.y + ' dB SPL';
               }
               return label;
+          },
+          title: function(context: any) {
+            return context[0].label + ' Hz';
           }
       }
     }
@@ -72,20 +75,20 @@ export const options = {
 
 const labels = ['january', 'february', 'march', 'april', 'may', 'june', 'july'];
 
-export const data = {
+import { ChartData, ChartDataset } from 'chart.js';
+
+export const data: ChartData<'line'> = {
   labels,
   datasets: [
     {
-      type: 'line',
-      label: 'Dataset 1',
-      data: labels.map(() => 100*Math.random()),
+      data: labels.map(() => 100 * Math.random()) as number[],
+      label: 'Maskees',
       borderColor: 'rgb(255, 99, 132)',
       backgroundColor: 'rgba(255, 99, 132, 0.5)',
     },
     {
-      type: 'scatter',
+      data: [{ x: 0, y: 0 }] as { x: number; y: number }[],
       label: 'Masker',
-      data: [{x: '0 hz', y: 0}],
       borderColor: 'rgb(53, 162, 235)',
       backgroundColor: 'rgba(53, 162, 235, 0.5)',
     },
@@ -121,7 +124,7 @@ export const TestResult = ({ selectedGains, grid,gridType, maskerInfo, minGain }
 
   useEffect(() => {
     setPlotData({
-      labels: grid.map((x) => x.toString() + (gridType == 'time'? ' s': ' Hz')),
+      labels: grid,
       datasets: [
         {
           type: 'line',
@@ -133,7 +136,7 @@ export const TestResult = ({ selectedGains, grid,gridType, maskerInfo, minGain }
         {
           type: 'line',
           label: 'Masker',
-          data: [{x: maskerInfo.placement.toString() + (gridType == 'time'? ' s': ' Hz'), y: maskerInfo.gain - minGain}, {x: maskerInfo.placement.toString() + (gridType == 'time'? ' s': ' Hz'), y: 0}],
+          data: [{x: maskerInfo.placement, y: maskerInfo.gain - minGain}, {x: maskerInfo.placement, y: 0}],
           borderColor: 'rgb(53, 162, 235)',
           backgroundColor: 'rgba(53, 162, 235, 0.5)',
         }
@@ -150,10 +153,28 @@ export const TestResult = ({ selectedGains, grid,gridType, maskerInfo, minGain }
             display: true,
             text: gridType == 'time'? 'Time (s)': 'Frequency (Hz)',
           }
-        },
-
-      
+        }
       },
+      plugins: {
+        ...options.plugins,
+        tooltip: {
+          callbacks: {
+              label: function(context: any) {
+                  let label = context.dataset.label.slice(0,-1) || '';
+                  if (label) {
+                      label += ': ';
+                  }
+                  if (context.parsed.y !== null) {
+                      label += context.parsed.y + ' dB SPL';
+                  }
+                  return label;
+              },
+              title: function(context: any) {
+                return context[0].label + (gridType == 'time'? ' s': ' Hz');
+              }
+          }
+        }
+      }
     });
 
   }, [selectedGains, grid, gridType, maskerInfo, minGain]);
