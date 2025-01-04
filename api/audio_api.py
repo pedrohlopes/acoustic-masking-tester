@@ -7,10 +7,8 @@ from .filter_design import sinc_filter_bandpass
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import base64
-import matplotlib.pyplot as plt
 from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
-import matplotlib
 
 app = FastAPI()
 
@@ -316,49 +314,6 @@ def combine_signals(
             "combined_signal": base64.b64encode(combined_file.getvalue()).decode('utf-8')
         }
     )
-
-@app.post("/api/py/plot_masking_curve", response_class=FileResponse)
-def plot_masking_curve(data: dict) -> FileResponse:
-    """
-        Plots the masking curve and returns the image file.
-        Args:
-            data (dict): A dictionary containing the gain array and the grid array.
-                gain (list): The gain values.
-                grid (list): The grid values for the x-axis.
-                maskerInfo (dict): A dictionary containing the masker information.
-        Returns:
-            FileResponse: A file response containing the plotted image of the masking curve.
-    """
-    maskee_gains = data.get('gains', [])
-    grid = data.get('grid', [])
-    grid_type = data.get('grid_type', 'time')
-    masker_info = data.get('masker_info', {})
-    masker_placement = masker_info.get('placement', 0.5)
-    grid_label = 'Time (s)' if grid_type == 'time' else 'Frequency (Hz)'
-    masker_gain = masker_info.get('gain', 60)
-    print(len(maskee_gains), len(grid))
-    if not maskee_gains or not grid or len(maskee_gains) != len(grid):
-        print(data)
-        return JSONResponse(content={"error": "Invalid data"}, status_code=400)
-    print('plot_masking_curve', data)
-    matplotlib.use('Agg')  # Use a non-interactive backend
-
-    plt.figure()
-    plt.plot(grid, maskee_gains, marker='o')
-    plt.plot(grid, maskee_gains, linestyle='-', color='b', label='Maskees')
-    plt.vlines(masker_placement, min(maskee_gains), masker_gain, colors='r', linestyles='dashed', label='Masker')
-    plt.plot(masker_placement, masker_gain, marker='o', color='r')
-    plt.legend()
-    plt.xlabel(grid_label)
-    plt.ylabel('Gain (dB)')
-    plt.title('Masking Curve')
-    plt.grid(True)
-
-    image_file = '/tmp/masking_curve.png'
-    plt.savefig(image_file)
-    plt.close()
-    
-    return FileResponse(image_file)
 
 
 if __name__ == "__main__":

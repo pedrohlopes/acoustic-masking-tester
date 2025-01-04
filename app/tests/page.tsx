@@ -29,7 +29,7 @@ export default function TestsPage() {
   const [invalidMasker,setInvalidMasker] = React.useState(false);
   const [invalidMaskee,setInvalidMaskee] = React.useState(false);
   const [invalidMaskingType, setInvalidMaskingType] = React.useState(false);
-  const [selectedTest, setSelectedTest] = React.useState(["pulse"]);
+  const [selectedTest, setSelectedTest] = React.useState(["pulseMaskedByPulse"]);
   const [selectedMaskingType, setSelectedMaskingType] = React.useState(["time"]);
   const [userResponses, setUserResponses] = React.useState<number[]>([]);
   const [calibrationGain,setCalibrationGain] = React.useState(0);
