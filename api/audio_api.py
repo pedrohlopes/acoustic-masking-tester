@@ -3,7 +3,7 @@ import numpy as np
 import uvicorn
 import io
 import soundfile as sf
-from scipy.signal import butter, lfilter
+from .filter_design import sinc_filter_bandpass
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 import base64
@@ -187,8 +187,8 @@ def generate_narrowband_noise(
         nyquist = 0.5 * fs
         low = lowcut / nyquist
         high = highcut / nyquist
-        b, a = butter(order, [low, high], btype='band')
-        return lfilter(b, a, data)
+        bandpass_filter = sinc_filter_bandpass(low, high, fs, order)
+        return np.convolve(data, bandpass_filter, mode='same')
 
     # Prepare the base audio signal
     base_audio = np.zeros(int(sample_rate * total_duration))

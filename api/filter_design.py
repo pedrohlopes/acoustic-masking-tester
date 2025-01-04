@@ -1,97 +1,59 @@
 import numpy as np
 
+def hamm(window_size):
+    N = window_size;
+    output = np.zeros((N, 1));
+    if np.mod(N, 2) == 0 :
+        m = np.fix(N / 2)
+        n = m
+    else:
+        m = np.fix(N / 2)+1; 
+        n = m-1; 
+    window = 0.54 - 0.46 * np.cos(2*np.pi*(np.arange(m)) / (N-1))
+    tmp1 = window[:int(m)]
+    tmp2 = window[np.arange(int(n)-1,-1,-1)]
+    return np.hstack((tmp1,tmp2))
 
-def butterworth_bandpass(lowcut, highcut, fs, order=4):
-    
-    """
-    Calculate the coefficients for a 4th-order Butterworth bandpass filter.
-    
-    Parameters:
-    - lowcut: Lower cutoff frequency (Hz)
-    - highcut: Upper cutoff frequency (Hz)
-    - fs: Sampling frequency (Hz)
-    - order: Filter order (must be even)
-    
-    Returns:
-    - b: Numerator coefficients
-    - a: Denominator coefficients
-    """
-    # Pre-warp frequencies
-    nyquist = 0.5 * fs
-    low = np.tan(np.pi * lowcut / nyquist)
-    high = np.tan(np.pi * highcut / nyquist)
-    
-    # Butterworth poles for analog prototype
-    poles = []
-    for k in range(1, order + 1):
-        theta = (2 * k - 1) * np.pi / (2 * order)
-        pole = -np.sin(theta) + 1j * np.cos(theta)
-        poles.append(pole)
-    
-    # Map poles to bandpass
-    bw = high - low
-    center = np.sqrt(high * low)
-    s_poles = [center * (p.imag * bw + p.real * 1j) for p in poles]
-    
-    # Bilinear transform
-    z_poles = [(2 * fs + s) / (2 * fs - s) for s in s_poles]
-    
-    # Generate filter coefficients (using pole-zero representation)
-    a = np.poly(z_poles).real
-    b = np.poly([-1] * len(z_poles)).real
-    return b, a
+def sinc_filter_low(order, fc1, fs):
+    Fc1 = fc1 / float(fs) 
+    M  = order
+    B = np.zeros((M+1, 1))
+    window = hamm(M+1)
+    for i in range(M+1):
+        if 2 * i == M:
+            B[i] = 2*np.pi*Fc1
+        else:
+            tmp1 = 2*np.pi*Fc1 *(i-(M/2.))
+            tmp2 = (i-(M/2.))
+            B[i] = np.sin(tmp1) / tmp2
+        B[i] = B[i] * window[i]
+    return B / np.sum(B)
 
-def apply_filter(signal, b, a):
-    """
-    Apply a digital filter using the difference equation.
-    
-    Parameters:
-    - signal: Input signal
-    - b: Numerator coefficients
-    - a: Denominator coefficients
-    
-    Returns:
-    - Filtered signal
-    """
-    y = np.zeros_like(signal)
-    for n in range(len(signal)):
-        y[n] = (b[0] * signal[n]
-                + sum(b[i] * signal[n - i] for i in range(1, len(b)) if n - i >= 0)
-                - sum(a[i] * y[n - i] for i in range(1, len(a)) if n - i >= 0)) / a[0]
-    return y
+def sinc_filter_high(order, fc1, fs):
+    Fc1 = fc1 / float(fs) 
+    M  = order
+    B = np.zeros((M+1, 1))
+    window = hamm(M+1)
+    for i in range(M+1):
+        if 2 * i == M:
+            B[i] = 2*np.pi*Fc1
+        else:
+            tmp1 = 2*np.pi*Fc1 *(i-(M/2.))
+            tmp2 = (i-(M/2.))
+            B[i] = np.sin(tmp1) / tmp2
+        B[i] = B[i] * window[i]
+    B = B / np.sum(B)
+    B = -B
+    B[(M//2)] = B[(M//2)] + 1
+    return B
 
-if __name__ == "__main__":
-    # Generate a test signal
-    fs = 1000
-    t = np.arange(0, 1, 1 / fs)
-    x = np.sin(2 * np.pi * 5 * t) + np.sin(2 * np.pi * 250 * t)
-    
-    # Design a bandpass filter
-    b, a = butterworth_bandpass(5, 50, fs)
-        # Compare filter coefficients
-    print("Custom filter coefficients:")
-    print("b:", b)
-    print("a:", a)
-    # Apply the filter
-    y = apply_filter(x, b, a)
-    
-    # Plot the results
-    import matplotlib.pyplot as plt
-    plt.plot(t, x, label="Original")
-    plt.plot(t, y, label="Filtered")
-    plt.legend()
-    plt.show()
-    
-    # Compare to SciPy
-    from scipy.signal import butter, lfilter
-    b, a = butter(4, [5, 50], btype="bandpass", fs=fs)
-    y = lfilter(b, a, x)
-    plt.plot(t, x, label="Original")
-    plt.plot(t, y, label="Filtered (SciPy)")
-    plt.legend()
-    plt.show()
-    
+def sinc_filter_bandpass(fc1, fc2, fs, order=101):
+    M = order
+    A = sinc_filter_low(order, fc1, fs).T[0]
+    B = sinc_filter_high(order, fc2, fs).T[0]
+    output = A+B
+    output = -output
+    output[(M//2)] = output[(M//2)] + 1.
+    return output
 
-    print("SciPy filter coefficients:")
-    print("b:", b)
-    print("a:", a)
+
