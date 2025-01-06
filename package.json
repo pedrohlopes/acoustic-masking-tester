@@ -3,9 +3,8 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"fastapi-dev": "pip3 install -r requirements.txt && python3 -m uvicorn api.audio_api:app --reload",
 		"next-dev": "next dev",
-		"dev": "concurrently \"npm run next-dev --turbo\" \"npm run fastapi-dev\"",
+		"dev": "npm run next-dev --turbo",
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"

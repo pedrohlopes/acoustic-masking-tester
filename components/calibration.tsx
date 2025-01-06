@@ -17,39 +17,40 @@ interface CalibrationStageProps {
 }
 
 
-const fetchCalibrationTone = async (url: string, volume: number) => {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      volume: volume
-    })
-  });
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
-  }
-  const jsonResponse = await response.json();
-  const toneAudioBase64 = jsonResponse['calibration_signal'];
 
-  return toneAudioBase64;
-}
+
 
 
 export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: CalibrationStageProps) => {
   const [volume, setVolume] = useState(fixedMaskingConfigs['initialCalibrationVolume']);
   const [calibrating, setCalibrating] = useState(false);
-  const [toneAudioBase64, setToneAudioBase64] = useState("");
-  const [toneAudio, setToneAudio] = useState<any>(null);
+  const [hasAudio, setHasAudio] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const url = "/api/py/generate_calibration_signal";
+  const fetchCalibrationTone = async (url: string, volume: number) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        volume: volume
+      })
+    });
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const jsonResponse = await response.json();
+    const toneAudioBase64 = jsonResponse['calibration_signal'];
+    setHasAudio(true);
+  
+    return toneAudioBase64;
+  }
+  const url = process.env.NEXT_PUBLIC_API_URL +  "/generate_calibration_signal";
 
   useEffect(() => {
     fetchCalibrationTone(url, volume).then((tone) => {
-      setToneAudioBase64(tone);
+      console.log(url)
       const audio = new Audio("data:audio/wav;base64," + tone);
-      setToneAudio(audio);
       });
   }, []);
 
@@ -60,8 +61,9 @@ export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: 
       Please make sure your OS upper volume limit is somewhere reasonably loud, as this will affect the dinamic range we can work with.<br></br>
       
       </p>
+
       {!calibrating ? <p className="text-center mt-[-1rem]">Oh, and if you need to change any specific settings, this is the time to do it! you can do so by clicking the button on the bottom right.</p>: null}
-        {(calibrating ? 
+        {!hasAudio ? <div className="flex flex-col"><Spinner /> <p> Please wait while we wake our backend...</p> </div> :(calibrating ? 
           (
             <div className="flex flex-col gap-3 w-full items-center justify-center"> 
             <p> Adjust the slider until the tone is barely hearable <br></br>(move to hear the tone)</p>
@@ -73,10 +75,9 @@ export const CalibrationStage = ({onCalibrated, testSettings, setTestSettings}: 
               }
             }}
             onChangeEnd={() => {fetchCalibrationTone(url,volume).then((tone) => {
-              setToneAudioBase64(tone);
+
               const audio = new Audio("data:audio/wav;base64," + tone);
               audio.play(); 
-              setToneAudio(audio);
               })
             }}
             minValue={-80}
