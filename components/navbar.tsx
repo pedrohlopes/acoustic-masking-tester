@@ -14,7 +14,7 @@ import { Input } from "@nextui-org/input";
 import { link as linkStyles } from "@nextui-org/theme";
 import NextLink from "next/link";
 import clsx from "clsx";
-
+import { usePathname } from 'next/navigation'
 import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import {
@@ -27,7 +27,6 @@ import {
 } from "@/components/icons";
 
 export const Navbar = () => {
-
 
   return (
     <NextUINavbar maxWidth="xl" position="sticky">
@@ -81,13 +80,13 @@ export const Navbar = () => {
             <NavbarMenuItem key={`${item}-${index}`}>
               <Link
                 color={
-                  index === 2
+                    false
                     ? "primary"
-                    : index === siteConfig.navMenuItems.length - 1
+                    : false
                       ? "danger"
                       : "foreground"
                 }
-                href="#"
+                href={item.href}
                 size="lg"
               >
                 {item.label}

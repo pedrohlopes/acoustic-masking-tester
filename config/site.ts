@@ -35,7 +35,5 @@ export const siteConfig = {
     github: "https://github.com/pedrohlopes/acoustic-masking-tester",
     twitter: "https://twitter.com/getnextui",
     docs: "https://nextui.org",
-    discord: "https://discord.gg/9b6yyZKmH4",
-    sponsor: "https://patreon.com/jrgarciadev",
   },
 };
