@@ -6,6 +6,14 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
     },
+    async rewrites() {
+        return [
+            {
+                source: '/api/py/:path*',
+                destination: 'https://masking-tester-api.onrender.com/api/:path*',
+            },
+        ]
+    },
 }
 
 module.exports = nextConfig
