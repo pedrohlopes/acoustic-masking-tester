@@ -1,17 +1,10 @@
 'use client';
-import { createClient } from "@libsql/client";
 import { useEffect } from "react";
-import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, getKeyValue, Button} from "@nextui-org/react";
+import {Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button} from "@nextui-org/react";
 import { useState } from "react";
 import React from "react";
 import { TestResult } from "@/components/testResult";
 import { fixedMaskingConfigs } from "@/config/masking";
-
-
-const client = createClient({
-  url: process.env.NEXT_PUBLIC_TURSO_DATABASE_URL || "",
-  authToken: process.env.NEXT_PUBLIC_TURSO_AUTH_TOKEN,
-});
 
 interface TestDataProps {
   id: number;
@@ -43,10 +36,11 @@ export default function StatsPage() {
   const maskingTypes: Record<string, Record<string, { title: string; masker: string; maskee: string }>> = fixedMaskingConfigs['maskingTypes'];
   console.log(maskingTypes)
 
-  useEffect(() =>{
-    client.execute("SELECT * FROM test_results").then((result) => {
-      const newFormattedTableRows = result.rows.map((row: any) => {
-        return {
+  useEffect(() => {
+    fetch('/api/results')
+      .then((res) => res.json())
+      .then((rows: any[]) => {
+        const newFormattedTableRows = rows.map((row: any) => ({
           id: row.id,
           name: row.name,
           testType: row.testType,
@@ -55,16 +49,11 @@ export default function StatsPage() {
           grid: JSON.parse(row.grid),
           responses: JSON.parse(row.responses),
           calibrationGain: row.calibrationGain,
-          maskerInfo: JSON.parse(row.maskerInfo)
-          
-        }
-      })
-      console.log(newFormattedTableRows)
-      setFormattedTableRows(newFormattedTableRows);
-    } )
-    
-  }
-  ,[])
+          maskerInfo: JSON.parse(row.maskerInfo),
+        }));
+        setFormattedTableRows(newFormattedTableRows);
+      });
+  }, [])
 
   useEffect(() => {
     console.log(testData)
